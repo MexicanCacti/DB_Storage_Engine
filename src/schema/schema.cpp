@@ -1,0 +1,67 @@
+#include "schema.hpp"
+
+std::size_t Schema::getFieldSize(const FieldType& fieldType) const
+{
+    switch(fieldType)
+    {
+        case FieldType::INT64:
+            return sizeof(std::int64_t);
+        case FieldType::STRING32:
+            return sizeof(char[32]);
+    }
+
+    return 0; // Should only be 0 if invalid
+    
+}
+
+Schema::Schema(const std::vector<Field>& fieldList)
+    : fields(fieldList)
+{
+    if(fieldList.empty()) throw std::invalid_argument("Schema Field List Empty!");
+    std::size_t width = 0;
+
+    // Validate Schema: Unique Names, Tuple Width Fits
+    std::unordered_set<std::string> fieldNames;
+
+    for(const Field& field : fieldList)
+    {
+        if(fieldNames.find(field.name) != fieldNames.end()) throw std::invalid_argument("Duplicate Field Name: " + field.name);
+        std::size_t fieldSize = getFieldSize(field.type);
+        if(fieldSize == 0) throw std::invalid_argument("Invalid Field Type: " + field.name);
+        width += fieldSize;
+        fieldNames.insert(field.name);
+    }
+
+    if(width > MAX_TUPLE_WIDTH)
+    {
+        std::string errorMsg = "Tuple Width = " + width;
+        errorMsg += "\tMax Width = " + MAX_TUPLE_WIDTH;
+        throw std::invalid_argument(errorMsg);
+    }
+}
+
+bool Schema::isValidTuple(const Tuple& tuple) const {
+    return true;
+}
+
+std::vector<std::byte> Schema::encode(const Tuple& tuple) const
+{
+    return {};
+}
+
+Tuple Schema::decode(const std::vector<std::byte>& bytes) const
+{
+    return {};
+}
+
+std::size_t Schema::tupleWidth() const
+{
+    std::size_t width = 0;
+
+    for(const Field& field : fields)
+    {
+        width += getFieldSize(field.type);
+    }
+
+    return width;
+}

@@ -1,0 +1,3 @@
+C:/Users/zombi/OneDrive/Desktop/DB_Storage_Engine/build/CMakeFiles/DB_STORAGE.dir
+C:/Users/zombi/OneDrive/Desktop/DB_Storage_Engine/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/zombi/OneDrive/Desktop/DB_Storage_Engine/build/CMakeFiles/ZERO_CHECK.dir
