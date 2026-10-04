@@ -1,1 +1,6 @@
 build/
+lib/
+runner/Debug
+runner/Release
+tests/Debug
+tests/Release
