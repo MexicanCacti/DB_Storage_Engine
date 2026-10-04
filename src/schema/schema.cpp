@@ -34,24 +34,26 @@ Schema::Schema(const std::vector<Field>& fieldList)
 
     if(width > MAX_TUPLE_WIDTH)
     {
-        std::string errorMsg = "Tuple Width = " + width;
-        errorMsg += "\tMax Width = " + MAX_TUPLE_WIDTH;
+        std::string errorMsg = "Tuple Width = " + std::to_string(width);
+        errorMsg += "\tMax Width = " + std::to_string(MAX_TUPLE_WIDTH);
         throw std::invalid_argument(errorMsg);
     }
 }
 
 bool Schema::isValidTuple(const Tuple& tuple) const {
+    
+    if(tuple.getTupleValues().size() != fields.size()) return false;
+
+    for(size_t i = 0 ; i < fields.size(); ++i)
+    {
+        const TupleValue* val = tuple.getTupleValue(i);
+        if(!val) return false;
+
+        if(fields[i].type == FieldType::INT64 && !std::holds_alternative<std::int64_t>(*val)) return false;
+        if(fields[i].type == FieldType::STRING32 && (!std::holds_alternative<std::string>(*val) || !isValidString32(std::get<std::string>(*val))) ) return false;
+    }
+
     return true;
-}
-
-std::vector<std::byte> Schema::encode(const Tuple& tuple) const
-{
-    return {};
-}
-
-Tuple Schema::decode(const std::vector<std::byte>& bytes) const
-{
-    return {};
 }
 
 std::size_t Schema::tupleWidth() const
@@ -64,4 +66,14 @@ std::size_t Schema::tupleWidth() const
     }
 
     return width;
+}
+
+std::vector<std::byte> Schema::encode(const Tuple& tuple) const
+{
+    return {};
+}
+
+Tuple Schema::decode(const std::vector<std::byte>& bytes) const
+{
+    return {};
 }

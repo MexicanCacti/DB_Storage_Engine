@@ -3,7 +3,7 @@ project(DB_STORAGE LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB_RECURSE SOURCES
+file(GLOB_RECURSE SOURCES CMAKE_CONFIGURE_DEPENDS
         ./src/*.cpp
         ./src/*.hpp
         ./src/*/*.cpp
