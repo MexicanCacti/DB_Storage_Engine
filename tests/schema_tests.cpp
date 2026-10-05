@@ -1,9 +1,57 @@
 #include <gtest/gtest.h>
+#include "schema.hpp"
 
-// Demonstrate some basic assertions.
-TEST(HelloTest, BasicAssertions) {
-  // Expect two strings not to be equal.
-  EXPECT_STRNE("hello", "world");
-  // Expect equality.
-  EXPECT_EQ(7 * 6, 42);
+TEST(ConstructionTests, EmptyArgs)
+{
+    ASSERT_THROW(
+      Schema s(std::vector<Field>{}); , std::invalid_argument
+    );
 }
+
+TEST(ConstructionTests, DuplicateNames)
+{
+    std::vector<Field> sameTypeSameNames = std::vector<Field>{
+        {"Name", FieldType::STRING32},
+        {"Name", FieldType::STRING32}
+    };
+
+    std::vector<Field> differentTypeSameNames = std::vector<Field>{
+        {"Name", FieldType::STRING32},
+        {"Name", FieldType::INT64}
+    };
+    
+    ASSERT_THROW(
+      Schema s(sameTypeSameNames), std::invalid_argument
+    );
+    
+    ASSERT_THROW(
+      Schema s(differentTypeSameNames), std::invalid_argument
+    );
+}
+
+TEST(ConstructionTests, TooLargeTupleWidth)
+{
+    // NOTE: If MAX_TUPLE_WIDTH changes, must change this as well!
+    std::vector<Field> TooLargeTupleWidth;
+
+    size_t currentWidth = 0;
+    size_t typeSize = getFieldTypeSize(FieldType::STRING32);
+    size_t nameNumber = 0;
+    while(currentWidth < MAX_TUPLE_WIDTH)
+    {
+        std::string name = "Name " + nameNumber++;
+        TooLargeTupleWidth.push_back({name, FieldType::STRING32});
+        currentWidth += typeSize;
+    }
+
+    ASSERT_THROW(
+        Schema s(TooLargeTupleWidth), std::invalid_argument
+    );
+}
+
+/*
+TEST(ConstructionTests, EncodeTuple)
+{
+
+}
+*/

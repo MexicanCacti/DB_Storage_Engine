@@ -1,19 +1,5 @@
 #include "schema.hpp"
 
-std::size_t Schema::getFieldSize(const FieldType& fieldType) const
-{
-    switch(fieldType)
-    {
-        case FieldType::INT64:
-            return sizeof(std::int64_t);
-        case FieldType::STRING32:
-            return sizeof(char[32]);
-    }
-
-    return 0; // Should only be 0 if invalid
-    
-}
-
 Schema::Schema(const std::vector<Field>& fieldList)
     : fields(fieldList)
 {
@@ -26,7 +12,7 @@ Schema::Schema(const std::vector<Field>& fieldList)
     for(const Field& field : fieldList)
     {
         if(fieldNames.find(field.name) != fieldNames.end()) throw std::invalid_argument("Duplicate Field Name: " + field.name);
-        std::size_t fieldSize = getFieldSize(field.type);
+        std::size_t fieldSize = getFieldTypeSize(field.type);
         if(fieldSize == 0) throw std::invalid_argument("Invalid Field Type: " + field.name);
         width += fieldSize;
         fieldNames.insert(field.name);
@@ -62,18 +48,18 @@ std::size_t Schema::tupleWidth() const
 
     for(const Field& field : fields)
     {
-        width += getFieldSize(field.type);
+        width += getFieldTypeSize(field.type);
     }
 
     return width;
 }
 
-std::vector<std::byte> Schema::encode(const Tuple& tuple) const
+std::vector<std::byte> Schema::encode(const std::vector<TupleValue>& tupleValueList) const
 {
     return {};
 }
 
-Tuple Schema::decode(const std::vector<std::byte>& bytes) const
+std::vector<TupleValue> Schema::decode(const std::vector<std::byte>& bytes) const
 {
     return {};
 }

@@ -1,0 +1,129 @@
+#include <gtest/gtest.h>
+#include "field.hpp"
+
+TEST(FieldTypeTests, GetCorrectSizes)
+{
+    EXPECT_EQ(getFieldTypeSize(FieldType::INT64), sizeof(std::int64_t));
+    EXPECT_EQ(getFieldTypeSize(FieldType::STRING32), sizeof(char[32]));
+}
+
+TEST(String32ValidationTests, BadSizes)
+{
+    std::string string33Bytes(33, '0');
+    EXPECT_FALSE(isValidString32(string33Bytes));
+    std::string string32Bytes(32, '0');
+    EXPECT_TRUE(isValidString32(string32Bytes));
+}
+
+TEST(String32ValidationTests, RejectEmbeddedZeroBytes)
+{
+    std::string embeddedString(32, '0');
+    embeddedString[1] = '\0';
+    EXPECT_FALSE(isValidString32(embeddedString));
+}
+
+// TODO: Write a test to reject for invalid UTF8
+
+TEST(String32ValidationTests, RejectSurrogates)
+{
+    std::string surrogateString{ static_cast<char>(0xED), static_cast<char>(0xA0), static_cast<char>(0x80)};   
+    EXPECT_FALSE(isValidString32(surrogateString));
+
+    surrogateString = { static_cast<char>(0xED), static_cast<char>(0xBF), static_cast<char>(0xBF)};
+    EXPECT_FALSE(isValidString32(surrogateString));
+}
+
+TEST(String32ValidationTests, RejectOverlyLongTwoBytes)
+{
+    std::string overlyLongString{ static_cast<char>(0xC1), static_cast<char>(0x81)};
+    EXPECT_FALSE(isValidString32(overlyLongString));
+}
+
+TEST(String32ValidationTests, RejectOverlyLongThreeBytes)
+{
+    std::string overlyLongString{ static_cast<char>(0xE0), static_cast<char>(0x81), static_cast<char>(0x81)};
+    EXPECT_FALSE(isValidString32(overlyLongString));
+}
+
+TEST(String32ValidationTests, RejectOverlyLongFourBytes)
+{
+    std::string overlyLongString{ static_cast<char>(0xF0), static_cast<char>(0x80), static_cast<char>(0x80), static_cast<char>(0x80)};
+    EXPECT_FALSE(isValidString32(overlyLongString));
+}
+
+TEST(String32ValidationTests, RejectOverUnicodeRange)
+{
+    std::string aboveRangeString{ static_cast<char>(0xF5), static_cast<char>(0x80), static_cast<char>(0x80), static_cast<char>(0x80)};
+    EXPECT_FALSE(isValidString32(aboveRangeString));
+}
+
+TEST(String32ValidationTests, AcceptTwoByteBoundaries)
+{
+    std::string lowerBoundString{ static_cast<char>(0xC2), static_cast<char>(0x80) };
+    std::string upperBoundString{ static_cast<char>(0xDF), static_cast<char>(0xBF) };
+    EXPECT_TRUE(isValidString32(lowerBoundString));
+    EXPECT_TRUE(isValidString32(upperBoundString));
+}
+
+TEST(String32ValidationTests, AcceptThreeByteBoundaries)
+{
+    std::string lowerBoundString{ static_cast<char>(0xE0), static_cast<char>(0xA0), static_cast<char>(0x80) };
+    std::string upperBoundString{ static_cast<char>(0xEF), static_cast<char>(0xBF), static_cast<char>(0xBF) };
+    EXPECT_TRUE(isValidString32(lowerBoundString));
+    EXPECT_TRUE(isValidString32(upperBoundString));
+}
+
+TEST(String32ValidationTests, AcceptFourByteBoundaries)
+{
+    std::string lowerBoundString{ static_cast<char>(0xF0), static_cast<char>(0x90), static_cast<char>(0x80), static_cast<char>(0x80) };
+    std::string upperBoundString{ static_cast<char>(0xF4), static_cast<char>(0x8F), static_cast<char>(0xBF), static_cast<char>(0xBF) };
+    EXPECT_TRUE(isValidString32(lowerBoundString));
+    EXPECT_TRUE(isValidString32(upperBoundString));
+}
+
+TEST(EncodeTests, INT64Encode)
+{
+    TupleValue tupleValue = std::int64_t(1);
+    std::vector<std::byte> encodedBytes = encodeTupleValue(tupleValue);
+    ASSERT_FALSE(encodedBytes.empty());
+    ASSERT_EQ(encodedBytes.size(), 8);
+
+    // Little endian, LSB first
+    EXPECT_EQ(encodedBytes[0], std::byte{0x01});
+    for(size_t currentByte = 1; currentByte < encodedBytes.size(); ++currentByte)
+    {
+        EXPECT_EQ(encodedBytes[currentByte], std::byte{0x00});
+    }
+
+    // Also do the same for -1
+}
+
+TEST(EncodeTests, STRING32Encode)
+{
+    TupleValue tupleValue = std::string("A");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(tupleValue);
+    ASSERT_FALSE(encodedBytes.empty());
+    ASSERT_TRUE(encodedBytes.size() == 32);
+    
+    EXPECT_EQ(encodedBytes[0], std::byte{0x41});
+    for(size_t currentByte = 1; currentByte < encodedBytes.size(); ++currentByte)
+    {
+        EXPECT_EQ(encodedBytes[currentByte], std::byte{0x00});
+    }
+}
+
+TEST(DecodeTests, INT64Decode)
+{
+    std::vector<std::byte> encodedBytes;
+    // Stores 1 in little endian
+    encodedBytes.push_back(std::byte{0x01});
+    for(size_t i = 1; i < 8; ++i)
+    {
+        encodedBytes.push_back(std::byte{0x00});
+    }
+
+    // Check the TupleType returned is a int64_t variant
+    // Check if equal to 1
+
+    // Also do the same for -1
+}

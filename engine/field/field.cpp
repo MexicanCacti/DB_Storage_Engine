@@ -2,6 +2,20 @@
 
 #include <stdlib.h>
 
+std::size_t getFieldTypeSize(FieldType fieldType)
+{
+    switch(fieldType)
+    {
+        case FieldType::INT64:
+            return sizeof(std::int64_t);
+        case FieldType::STRING32:
+            return sizeof(char[32]);
+    }
+
+    return 0; // Should only be 0 if invalid
+    
+}
+
 bool isValidString32(const std::string& str)
 {
 
@@ -118,4 +132,37 @@ bool isValidString32(const std::string& str)
     }
     
     return true;
+}
+
+// Throws invalid_argument if tupleValue doesn't match a variant
+std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
+{
+    if(std::holds_alternative<std::int64_t>(tupleValue))
+    {
+        std::int64_t int64TupleVal = std::get<std::int64_t>(tupleValue);
+        std::uint64_t uint64TupleVal = static_cast<std::uint64_t>(int64TupleVal); // Needed for encoding correctly!
+        std::vector<std::byte> byteArray(8, std::byte{0}); // 8 Byte empty array all init to 0
+        for(std::size_t currentByte = 0 ; currentByte < 8; ++currentByte)
+        {
+            byteArray[currentByte] = static_cast<std::byte>(int64TupleVal >> (currentByte * 8) & 0xFF);
+        }
+
+        return byteArray;
+    }
+    else if(std::holds_alternative<std::string>(tupleValue))
+    {
+        std::string stringTupleVal = std::get<std::string>(tupleValue);
+        if(!isValidString32(stringTupleVal)) return {};
+
+        std::vector<std::byte> byteArray(32, std::byte{0}); // 32 Byte empty array all init to 0
+        std::memcpy(byteArray.data() , stringTupleVal.data(), stringTupleVal.size());
+        return byteArray;
+    }
+    else throw std::invalid_argument("Could not match tupleValue!");
+    
+}
+
+TupleValue decodeBytes(const std::vector<std::byte>& bytes)
+{
+    return "";
 }
