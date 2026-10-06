@@ -119,6 +119,34 @@ TEST(EncodeTests, STRING32Encode)
     }
 }
 
+TEST(EncodeTests, STRING32MultibyteEncode)
+{
+    TupleValue val = std::string("¥");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(val);
+    ASSERT_FALSE(encodedBytes.empty());
+    ASSERT_TRUE(encodedBytes.size() == 32);
+    
+    EXPECT_EQ(encodedBytes[0], std::byte{0xC2});
+    EXPECT_EQ(encodedBytes[1], std::byte{0xA5});
+    for(size_t currentByte = 2; currentByte < encodedBytes.size(); ++currentByte)
+    {
+        EXPECT_EQ(encodedBytes[currentByte], std::byte{0x00});
+    }
+}
+
+TEST(EncodeTests, STRING32EmptyEncode)
+{
+    TupleValue val = std::string("");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(val);
+    ASSERT_FALSE(encodedBytes.empty());
+    ASSERT_TRUE(encodedBytes.size() == 32);
+    for(size_t currentByte = 0; currentByte < encodedBytes.size(); ++currentByte)
+    {
+        EXPECT_EQ(encodedBytes[currentByte], std::byte{0x00});
+    }
+    
+}
+
 TEST(DecodeTests, INT64Decode)
 {
     std::vector<std::byte> encodedBytes;
@@ -183,6 +211,18 @@ TEST(DecodeTests, STRING32MaxByteDecode)
 
 }
 
+TEST(DecodeTests, STRING32MultiByteDecode)
+{
+    std::vector<std::byte> encodedBytes(32, std::byte{0x00});
+    encodedBytes[0] = std::byte{0xC2};
+    encodedBytes[1] = std::byte{0xA5};
+
+    TupleValue decodedValue = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    ASSERT_TRUE(std::holds_alternative<std::string>(decodedValue));
+    EXPECT_EQ(std::get<std::string>(decodedValue), "¥");
+}
+
 TEST(DecodeTests, STRING32DecodeEmpty)
 {
     std::vector<std::byte> encodedBytes(32, std::byte{0x00});
@@ -191,4 +231,58 @@ TEST(DecodeTests, STRING32DecodeEmpty)
 
     ASSERT_TRUE(std::holds_alternative<std::string>(decodedValue));
     EXPECT_EQ(std::get<std::string>(decodedValue), "");
+}
+
+TEST(RoundTripTests, INT64)
+{
+    TupleValue val = std::int64_t(2);
+    std::vector<std::byte> encodedBytes = encodeTupleValue(val);
+    TupleValue decodedVal = decodeBytes(encodedBytes, FieldType::INT64);
+
+    EXPECT_EQ(std::get<std::int64_t>(val), std::get<std::int64_t>(decodedVal));
+}
+
+TEST(RoundTripTests, INT64Negative)
+{
+    TupleValue val = std::int64_t(-3);
+    std::vector<std::byte> encodedBytes = encodeTupleValue(val);
+    TupleValue decodedVal = decodeBytes(encodedBytes, FieldType::INT64);
+
+    EXPECT_EQ(std::get<std::int64_t>(val), std::get<std::int64_t>(decodedVal));
+}
+
+TEST(RoundTripTests, STRING32)
+{
+    TupleValue stringVal = std::string("TEST");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(stringVal);
+    TupleValue decodedVal = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    EXPECT_EQ(std::get<std::string>(stringVal), std::get<std::string>(decodedVal));
+}
+
+TEST(RoundTripTests, STRING32MaxByte)
+{
+    TupleValue stringVal = std::string("ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(stringVal);
+    TupleValue decodedVal = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    EXPECT_EQ(std::get<std::string>(stringVal), std::get<std::string>(decodedVal));
+}
+
+TEST(RoundTripTests, STRING32Empty)
+{
+    TupleValue stringVal = std::string("");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(stringVal);
+    TupleValue decodedVal = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    EXPECT_EQ(std::get<std::string>(stringVal), std::get<std::string>(decodedVal));
+}
+
+TEST(RoundTripTests, STRING32MultiByte)
+{
+    TupleValue stringVal = std::string("¥");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(stringVal);
+    TupleValue decodedVal = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    EXPECT_EQ(std::get<std::string>(stringVal), std::get<std::string>(decodedVal));
 }
