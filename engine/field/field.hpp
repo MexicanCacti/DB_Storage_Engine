@@ -30,4 +30,4 @@ bool isValidString32(const std::string& str);
 
 std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue);
 
-TupleValue decodeBytes(const std::vector<std::byte>& bytes);
+TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType);

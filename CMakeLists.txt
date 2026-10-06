@@ -1,6 +1,5 @@
 # Packages the storage engine into a library & also creates the runner & test executables 
-
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
 project(DB_STORAGE_LIBRARY LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)

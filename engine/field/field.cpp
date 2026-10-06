@@ -162,7 +162,35 @@ std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
     
 }
 
-TupleValue decodeBytes(const std::vector<std::byte>& bytes)
+TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
 {
-    return "";
+    if(fieldType == FieldType::INT64)
+    {
+        std::uint64_t value = 0; // Bit-wise, everything is set to 0
+
+        for(std::size_t currentByte = 0 ; currentByte < 8; ++currentByte)
+        {
+            std::uint64_t byteValue = static_cast<std::uint64_t>(bytes[currentByte]);
+            byteValue = byteValue << (currentByte * 8); // Want to shift the byteValue to the left s.t. it get's OR'd into its correct position
+            
+            // Because every bit in value is default set to 0, any OR with a retrieved byte will set the bit... meaning we get the correct bytes
+            value |= byteValue;
+        }
+
+        std::int64_t tupleValue;
+        memcpy(&tupleValue, &value, sizeof(std::int64_t));
+        return tupleValue;
+    }
+    else if(fieldType == FieldType::STRING32)
+    {
+        std::string tupleValue = "";
+        for(std::size_t currentByte = 0 ; currentByte < 32; ++currentByte)
+        {
+            if(bytes[currentByte] == std::byte{0x00}) break; // Beginning of trailing padding, we don't wanted embedded zeroes
+            tupleValue.push_back(static_cast<char>(bytes[currentByte]));
+        }
+
+        return tupleValue;
+    }
+    else throw std::invalid_argument("Could not match field type!");
 }

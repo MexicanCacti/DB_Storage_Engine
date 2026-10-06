@@ -22,8 +22,6 @@ TEST(String32ValidationTests, RejectEmbeddedZeroBytes)
     EXPECT_FALSE(isValidString32(embeddedString));
 }
 
-// TODO: Write a test to reject for invalid UTF8
-
 TEST(String32ValidationTests, RejectSurrogates)
 {
     std::string surrogateString{ static_cast<char>(0xED), static_cast<char>(0xA0), static_cast<char>(0x80)};   
@@ -83,8 +81,8 @@ TEST(String32ValidationTests, AcceptFourByteBoundaries)
 
 TEST(EncodeTests, INT64Encode)
 {
-    TupleValue tupleValue = std::int64_t(1);
-    std::vector<std::byte> encodedBytes = encodeTupleValue(tupleValue);
+    TupleValue val = std::int64_t(1);
+    std::vector<std::byte> encodedBytes = encodeTupleValue(val);
     ASSERT_FALSE(encodedBytes.empty());
     ASSERT_EQ(encodedBytes.size(), 8);
 
@@ -95,13 +93,22 @@ TEST(EncodeTests, INT64Encode)
         EXPECT_EQ(encodedBytes[currentByte], std::byte{0x00});
     }
 
-    // Also do the same for -1
+    val = std::int64_t(-2);
+    encodedBytes = encodeTupleValue(val);
+    ASSERT_FALSE(encodedBytes.empty());
+    ASSERT_EQ(encodedBytes.size(), 8);
+
+    EXPECT_EQ(encodedBytes[0], std::byte{0xFE});
+    for(size_t currentByte = 1; currentByte < encodedBytes.size(); ++currentByte)
+    {
+        EXPECT_EQ(encodedBytes[currentByte], std::byte{0xFF});
+    }
 }
 
 TEST(EncodeTests, STRING32Encode)
 {
-    TupleValue tupleValue = std::string("A");
-    std::vector<std::byte> encodedBytes = encodeTupleValue(tupleValue);
+    TupleValue val = std::string("A");
+    std::vector<std::byte> encodedBytes = encodeTupleValue(val);
     ASSERT_FALSE(encodedBytes.empty());
     ASSERT_TRUE(encodedBytes.size() == 32);
     
@@ -122,8 +129,66 @@ TEST(DecodeTests, INT64Decode)
         encodedBytes.push_back(std::byte{0x00});
     }
 
-    // Check the TupleType returned is a int64_t variant
-    // Check if equal to 1
+    TupleValue decodedValue = decodeBytes(encodedBytes, FieldType::INT64);
 
-    // Also do the same for -1
+    ASSERT_TRUE(std::holds_alternative<std::int64_t>(decodedValue));
+    EXPECT_EQ(std::get<std::int64_t>(decodedValue), 1);
+}
+
+TEST(DecodeTests, INT64DecodeNegative)
+{
+    // Also do the same for -2 ... so because signed, use two-complement... 1111 1110 .... FE FF FF FF ...
+    std::vector<std::byte> encodedBytes;
+    encodedBytes.push_back(std::byte{0xFE});
+    for(size_t i = 1 ; i < 8 ; ++i)
+    {
+        encodedBytes.push_back(std::byte{0xFF});
+    }
+
+    TupleValue decodedValue = decodeBytes(encodedBytes, FieldType::INT64);
+    ASSERT_TRUE(std::holds_alternative<std::int64_t>(decodedValue));
+    EXPECT_EQ(std::get<std::int64_t>(decodedValue), -2);
+}
+
+
+TEST(DecodeTests, STRING32Decode)
+{
+    std::vector<std::byte> encodedBytes(32, std::byte{0x00});
+    encodedBytes[0] = std::byte{'T'};
+    encodedBytes[1] = std::byte{'E'};
+    encodedBytes[2] = std::byte{'S'};
+    encodedBytes[3] = std::byte{'T'};
+
+    TupleValue decodedValue = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    ASSERT_TRUE(std::holds_alternative<std::string>(decodedValue));
+    EXPECT_EQ(std::get<std::string>(decodedValue), "TEST");
+}
+
+TEST(DecodeTEsts, STRING32MaxByteDecode)
+{
+    std::string maxSize32String = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF";
+    ASSERT_EQ(maxSize32String.size(), 32);
+
+    std::vector<std::byte> encodedBytes(32);
+    for(std::size_t i = 0 ; i < 32; ++i)
+    {
+        encodedBytes[i] = static_cast<std::byte>(maxSize32String[i]);
+    }
+
+    TupleValue decodedValue = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    ASSERT_TRUE(std::holds_alternative<std::string>(decodedValue));
+    EXPECT_EQ(std::get<std::string>(decodedValue), maxSize32String);
+
+}
+
+TEST(DecodeTests, STRING32DecodeEmpty)
+{
+    std::vector<std::byte> encodedBytes(32, std::byte{0x00});
+
+    TupleValue decodedValue = decodeBytes(encodedBytes, FieldType::STRING32);
+
+    ASSERT_TRUE(std::holds_alternative<std::string>(decodedValue));
+    EXPECT_EQ(std::get<std::string>(decodedValue), "");
 }
