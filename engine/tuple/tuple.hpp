@@ -10,8 +10,8 @@
 class Tuple {
     private:
         std::vector<TupleValue> values;
-    public:
         Tuple() = default;
+    public:
         Tuple(const std::vector<TupleValue>& valueList) : values(valueList) {};
         const std::vector<TupleValue>& getTupleValues() const {return values;};
         const TupleValue* getTupleValue(std::size_t index) const;

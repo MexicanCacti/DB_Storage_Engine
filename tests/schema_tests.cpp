@@ -49,6 +49,55 @@ TEST(ConstructionTests, TooLargeTupleWidth)
     );
 }
 
+TEST(ConstructionTests, CorrectConstruction)
+{
+    std::vector<Field> SchemaField { 
+      {"Int64Field", FieldType::INT64}, 
+      {"String32Field", FieldType::STRING32} 
+    };
+  
+    ASSERT_NO_THROW(Schema s(SchemaField));
+}
+
+TEST(ConstructionTests, ExpectedConstruction)
+{
+    std::vector<Field> SchemaField { 
+        {"Int64Field", FieldType::INT64}, 
+        {"String32Field", FieldType::STRING32} 
+    };
+  
+    Schema s(SchemaField);
+
+    std::vector<Field> saveFieldList = s.getFieldList();
+
+    ASSERT_EQ(saveFieldList.size(), SchemaField.size());
+
+    for(std::size_t currentField = 0 ; currentField < saveFieldList.size(); ++currentField)
+    {
+        EXPECT_EQ(saveFieldList[currentField].name, SchemaField[currentField].name);
+        EXPECT_EQ(saveFieldList[currentField].type, SchemaField[currentField].type);
+    }
+}
+
+TEST(FunctionTests, ValidateTupleList)
+{
+  
+}
+
+TEST(EncodeTests, EncodeTupleList)
+{
+ 
+}
+
+TEST(DecodeTests, DecodeTupleList)
+{
+
+}
+
+TEST(RoundTripTests, EncodeDecodeTupleList)
+{
+
+}
 /*
 TEST(ConstructionTests, EncodeTuple)
 {
