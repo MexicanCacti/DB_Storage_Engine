@@ -165,7 +165,7 @@ TEST(DecodeTests, STRING32Decode)
     EXPECT_EQ(std::get<std::string>(decodedValue), "TEST");
 }
 
-TEST(DecodeTEsts, STRING32MaxByteDecode)
+TEST(DecodeTests, STRING32MaxByteDecode)
 {
     std::string maxSize32String = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF";
     ASSERT_EQ(maxSize32String.size(), 32);
