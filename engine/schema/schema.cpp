@@ -78,24 +78,22 @@ std::vector<std::byte> Schema::encode(const std::vector<TupleValue>& tupleValueL
 
 std::vector<TupleValue> Schema::decode(const std::vector<std::byte>& bytes) const
 {
-    std::vector<TupleValue> tupleValueList(fields.size());
+    std::vector<TupleValue> tupleValueList;
     std::size_t currentByte = 0;
     for(std::size_t i = 0 ; i < fields.size(); ++i)
     {
         if(fields[i].type == FieldType::INT64)
         {
-            if(currentByte + 8 >= bytes.size()) return {}; // Not all bytes are present!
-            std::vector<std::byte> intBytes;
-            std::copy(bytes.begin() + currentByte, bytes.begin() + currentByte + 8, intBytes.begin());
+            if(currentByte + 8 > bytes.size()) return {}; // Not all bytes are present!
+            std::vector<std::byte> intBytes(bytes.begin() + currentByte, bytes.begin() + currentByte + 8);
             TupleValue decodedInt = decodeBytes(intBytes, FieldType::INT64);
             tupleValueList.push_back(decodedInt);
             currentByte += 8;
         }   
         else if(fields[i].type == FieldType::STRING32)
         {
-            if(currentByte + 32 >= bytes.size()) return {}; // Not all bytes are present!
-            std::vector<std::byte> string32Bytes;
-            std::copy(bytes.begin() + currentByte, bytes.begin() + currentByte + 32, string32Bytes.begin());
+            if(currentByte + 32 > bytes.size()) return {}; // Not all bytes are present!
+            std::vector<std::byte> string32Bytes(bytes.begin() + currentByte, bytes.begin() + currentByte + 32);
             TupleValue decodedInt = decodeBytes(string32Bytes, FieldType::STRING32);
             tupleValueList.push_back(decodedInt);
             currentByte += 32;

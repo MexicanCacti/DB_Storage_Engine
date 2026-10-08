@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "schema.hpp"
+#include "tuple.hpp"
 
 TEST(ConstructionTests, EmptyArgs)
 {
@@ -37,7 +38,7 @@ TEST(ConstructionTests, TooLargeTupleWidth)
     size_t currentWidth = 0;
     size_t typeSize = getFieldTypeSize(FieldType::STRING32);
     size_t nameNumber = 0;
-    while(currentWidth < MAX_TUPLE_WIDTH)
+    while(currentWidth <= MAX_TUPLE_WIDTH)
     {
         std::string name = "Name " + nameNumber++;
         TooLargeTupleWidth.push_back({name, FieldType::STRING32});
@@ -81,12 +82,58 @@ TEST(ConstructionTests, ExpectedConstruction)
 
 TEST(FunctionTests, ValidateTupleList)
 {
-  
+    std::vector<Field> SchemaField { 
+        {"Int64Field", FieldType::INT64}, 
+        {"String32Field", FieldType::STRING32} 
+    };
+    std::vector<TupleValue> TupleField {
+      {2},
+      {"blah"}
+    };
+    
+    std::vector<TupleValue> TupleField2 {
+      {"blah"},
+      {2}
+    };
+
+    Schema s(SchemaField);
+    Tuple t(TupleField);
+    Tuple t2(TupleField2);
+
+    ASSERT_TRUE(s.isValidTuple(t.getTupleValues()));
+    ASSERT_FALSE(s.isValidTuple(t2.getTupleValues()));
 }
 
 TEST(EncodeTests, EncodeTupleList)
 {
- 
+    std::vector<Field> SchemaField { 
+    {"Int64Field", FieldType::INT64}, 
+    {"String32Field", FieldType::STRING32} 
+    };
+    std::vector<TupleValue> TupleField {
+      {2},
+      {"blah"}
+    };
+
+    Schema s(SchemaField);
+    Tuple t(TupleField);
+
+    std::vector<std::byte> encodedList;
+    for(TupleValue& val : TupleField)
+    {
+        std::vector<std::byte> encodedTuple = encodeTupleValue(val);
+        for(std::byte& b : encodedTuple)
+        {
+            encodedList.push_back(b);
+        }
+    }
+
+    std::vector<std::byte> schemaEncode = s.encode(t.getTupleValues());
+    
+    for(std::size_t i = 0 ; i < encodedList.size(); ++i)
+    {
+        ASSERT_EQ(schemaEncode[i], encodedList[i]);
+    }
 }
 
 TEST(DecodeTests, DecodeTupleList)
@@ -96,11 +143,65 @@ TEST(DecodeTests, DecodeTupleList)
 
 TEST(RoundTripTests, EncodeDecodeTupleList)
 {
+    std::vector<Field> SchemaField { 
+    {"Int64Field", FieldType::INT64}, 
+    {"String32Field", FieldType::STRING32} 
+    };
+    std::vector<TupleValue> TupleField {
+      {2},
+      {"blah"}
+    };
+
+    Schema s(SchemaField);
+    Tuple t(TupleField);
+
+    std::vector<std::byte> encodedList;
+    for(TupleValue& val : TupleField)
+    {
+        std::vector<std::byte> encodedTuple = encodeTupleValue(val);
+        for(std::byte& b : encodedTuple)
+        {
+            encodedList.push_back(b);
+        }
+    }
+
+    std::vector<std::byte> schemaEncode = s.encode(t.getTupleValues());
+    
+    for(std::size_t i = 0 ; i < encodedList.size(); ++i)
+    {
+        ASSERT_EQ(schemaEncode[i], encodedList[i]);
+    }
+
+    std::vector<TupleValue> decodedList;
+    size_t b = 0;
+    for(size_t i = 0 ; i < SchemaField.size(); ++i)
+    {
+        if(SchemaField[i].type == FieldType::INT64)
+        {
+            std::vector<std::byte> subEncode(encodedList.begin() + b, encodedList.begin() + b + 8);
+            decodedList.push_back(decodeBytes(subEncode, FieldType::INT64));
+            b += 8;
+        }
+        else if (SchemaField[i].type == FieldType::STRING32)
+        {
+            std::vector<std::byte> subEncode(encodedList.begin() + b, encodedList.begin() + b + 32);
+            decodedList.push_back(decodeBytes(subEncode, FieldType::STRING32));
+            b += 32;
+        }
+    }
+
+    std::vector<TupleValue> schemaDecode = s.decode(schemaEncode);
+
+    for(size_t i = 0 ; i < SchemaField.size(); ++i)
+    {
+        if(SchemaField[i].type == FieldType::INT64)
+        {
+            ASSERT_EQ(std::get<std::int64_t>(schemaDecode[i]),std::get<std::int64_t>(decodedList[i]));
+        }
+        else if (SchemaField[i].type == FieldType::STRING32)
+        {
+            ASSERT_EQ(std::get<std::string>(schemaDecode[i]), std::get<std::string>(decodedList[i]));
+        }
+    }
 
 }
-/*
-TEST(ConstructionTests, EncodeTuple)
-{
-
-}
-*/
