@@ -164,6 +164,8 @@ std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
 
 TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
 {
+    if(bytes.size() != getFieldTypeSize(fieldType)) throw std::invalid_argument("Byte length doesn't match fieldType!");
+
     if(fieldType == FieldType::INT64)
     {
         std::uint64_t value = 0; // Bit-wise, everything is set to 0
@@ -184,11 +186,19 @@ TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
     else if(fieldType == FieldType::STRING32)
     {
         std::string tupleValue = "";
-        for(std::size_t currentByte = 0 ; currentByte < 32; ++currentByte)
+        std::size_t currentByte = 0;
+        for(currentByte ; currentByte < 32; ++currentByte)
         {
             if(bytes[currentByte] == std::byte{0x00}) break; // Beginning of trailing padding, we don't wanted embedded zeroes
             tupleValue.push_back(static_cast<char>(bytes[currentByte]));
         }
+
+        while(currentByte < 32)
+        {
+            if(bytes[currentByte++] != std::byte{0x00}) throw std::invalid_argument("Malformed String32!");
+        }
+
+        if(!isValidString32(tupleValue)) throw std::invalid_argument("Decoded non-valid String32!");
 
         return tupleValue;
     }
