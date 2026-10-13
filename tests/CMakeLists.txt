@@ -25,6 +25,10 @@ add_executable( schema_tests
   schema_tests.cpp
 )
 
+add_executable( page_tests
+  page_tests.cpp
+)
+
 target_link_libraries( field_tests
     PRIVATE
         DB_STORAGE_LIBRARY
@@ -37,9 +41,16 @@ target_link_libraries( schema_tests
         GTest::gtest_main
 )
 
+target_link_libraries( page_tests
+    PRIVATE
+        DB_STORAGE_LIBRARY
+        GTest::gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(field_tests)
 gtest_discover_tests(schema_tests)
+gtest_discover_tests(page_tests)
 
 set_target_properties(field_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -49,3 +60,6 @@ set_target_properties(schema_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+set_target_properties(page_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)

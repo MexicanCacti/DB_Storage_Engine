@@ -20,6 +20,7 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/field
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/schema
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine/page
 
     # Include all DB directories that contain the .hpp files
     PUBLIC
@@ -27,6 +28,7 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/field>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/schema>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/page>
         # where external projects will look for the library's public headers
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -58,6 +60,7 @@ set(public_headers
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/field/field.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/schema/schema.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple/tuple.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine/page/page.hpp
 )
 
 set_target_properties(DB_STORAGE_LIBRARY PROPERTIES PUBLIC_HEADER "${public_headers}")
