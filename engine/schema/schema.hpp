@@ -12,7 +12,7 @@
 #include "../tuple/tuple.hpp"
 #include "../field/field.hpp"
 
-const std::size_t MAX_TUPLE_WIDTH = 40; // Note value will change once math done
+const std::size_t MAX_TUPLE_WIDTH = 200;
 
 class Schema {
     private:

@@ -135,6 +135,7 @@ bool isValidString32(const std::string& str)
 }
 
 // Throws invalid_argument if tupleValue doesn't match a variant
+// Basically just creates a byte vector for the tuple... no header info just pure raw byte tuple data
 std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
 {
     if(std::holds_alternative<std::int64_t>(tupleValue))
@@ -144,7 +145,7 @@ std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
         std::vector<std::byte> byteArray(8, std::byte{0}); // 8 Byte empty array all init to 0
         for(std::size_t currentByte = 0 ; currentByte < 8; ++currentByte)
         {
-            byteArray[currentByte] = static_cast<std::byte>(int64TupleVal >> (currentByte * 8) & 0xFF);
+            byteArray[currentByte] = static_cast<std::byte>(uint64TupleVal >> (currentByte * 8) & 0xFF);
         }
 
         return byteArray;
@@ -162,6 +163,7 @@ std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
     
 }
 
+// Takes in the raw bytes and based on the field type passed in, attempts to create a TupleValue of that type
 TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
 {
     if(bytes.size() != getFieldTypeSize(fieldType)) throw std::invalid_argument("Byte length doesn't match fieldType!");
