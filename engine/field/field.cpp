@@ -370,5 +370,5 @@ std::vector<Field> decodeSchemaField(const std::vector<std::byte>& bytes)
 {
     // First 2 bytes are the # of schema fields
     // Use that to determine bytes to read
-    // std::size_t schemaFieldByteSize = 34 * # of fields 
+    // std::size_t schemaFieldByteSize = 33 * # of fields 
 }

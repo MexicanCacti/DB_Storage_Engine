@@ -21,7 +21,27 @@ add_executable( basic_types_tests
   basic_types_tests.cpp
 )
 
+add_executable( helper_tests
+  helper_tests.cpp
+)
+
+add_executable( basic_types_encode_decode_tests
+  basic_types_encode_decode_tests.cpp
+)
+
 target_link_libraries( basic_types_tests
+    PRIVATE
+        DB_STORAGE_LIBRARY
+        GTest::gtest_main
+)
+
+target_link_libraries( helper_tests
+    PRIVATE
+        DB_STORAGE_LIBRARY
+        GTest::gtest_main
+)
+
+target_link_libraries( basic_types_encode_decode_tests
     PRIVATE
         DB_STORAGE_LIBRARY
         GTest::gtest_main
@@ -29,7 +49,12 @@ target_link_libraries( basic_types_tests
 
 include(GoogleTest)
 gtest_discover_tests(basic_types_tests)
+gtest_discover_tests(helper_tests)
+gtest_discover_tests(basic_types_encode_decode_tests)
 
-set_target_properties(basic_types_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+set_target_properties(
+    basic_types_tests helper_tests basic_types_encode_decode_tests 
+      PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
+
