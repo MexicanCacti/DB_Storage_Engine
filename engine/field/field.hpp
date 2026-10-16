@@ -36,7 +36,7 @@ struct Field {
 
 void appendBytes(std::vector<std::byte>& dest, std::vector<std::byte>& src);
 
-void copyBytes(std::vector<stdd:byte>& dest, std::vector<std::byte>& src);
+void copyBytes(std::vector<std::byte>& dest, std::vector<std::byte>& src);
 
 std::size_t getIntTypeSize(IntType intType);
 

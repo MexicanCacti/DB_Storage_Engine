@@ -17,49 +17,19 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable( field_tests
-  field_tests.cpp
+add_executable( basic_types_tests
+  basic_types_tests.cpp
 )
 
-add_executable( schema_tests
-  schema_tests.cpp
-)
-
-add_executable( page_tests
-  page_tests.cpp
-)
-
-target_link_libraries( field_tests
-    PRIVATE
-        DB_STORAGE_LIBRARY
-        GTest::gtest_main
-)
-
-target_link_libraries( schema_tests
-    PRIVATE
-        DB_STORAGE_LIBRARY
-        GTest::gtest_main
-)
-
-target_link_libraries( page_tests
+target_link_libraries( basic_types_tests
     PRIVATE
         DB_STORAGE_LIBRARY
         GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(field_tests)
-gtest_discover_tests(schema_tests)
-gtest_discover_tests(page_tests)
+gtest_discover_tests(basic_types_tests)
 
-set_target_properties(field_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
-set_target_properties(schema_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
-set_target_properties(page_tests PROPERTIES
+set_target_properties(basic_types_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )

@@ -9,26 +9,18 @@ add_library(${PROJECT_NAME})
 # Include all DB .cpp files
 target_sources(${PROJECT_NAME}
     PRIVATE
-        engine/field/field.cpp
-        engine/schema/schema.cpp
-        engine/tuple/tuple.cpp
+        engine/basic_types/basic_types.cpp
 )
 
 # Include all DB Directories
 target_include_directories(${PROJECT_NAME}
     PRIVATE 
-        ${CMAKE_CURRENT_SOURCE_DIR}/engine/field
-        ${CMAKE_CURRENT_SOURCE_DIR}/engine/schema
-        ${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple
-        ${CMAKE_CURRENT_SOURCE_DIR}/engine/page
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types
 
     # Include all DB directories that contain the .hpp files
     PUBLIC
         # where top-level project will look for the library's public headers
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/field>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/schema>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/page>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types>
         # where external projects will look for the library's public headers
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -57,10 +49,7 @@ endif()
 
 # Every header used by the DB Storage Engine should be here. Basically makes public to other projects using the library
 set(public_headers
-    ${CMAKE_CURRENT_SOURCE_DIR}/engine/field/field.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/engine/schema/schema.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple/tuple.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/engine/page/page.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types/basic_types.hpp
 )
 
 set_target_properties(DB_STORAGE_LIBRARY PROPERTIES PUBLIC_HEADER "${public_headers}")
