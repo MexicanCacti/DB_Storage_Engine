@@ -2,6 +2,35 @@
 
 #include <stdlib.h>
 
+void appendBytes(std::vector<std::byte>& dest, std::vector<std::byte>& src)
+{
+    for(std::byte& byte : src)
+    {
+        dest.push_back(src);
+    }
+}
+
+void copyBytes(std::vector<std:byte>& dest, std::vector<std::byte>& src, std::size_t& offset)
+{
+    if(offset > dest.size() || src.size() > dest.size() - offset) throw std::out_of_range("src bytes larger than dest");
+    std::copy(src.begin(), src.end(), dest.begin() + offset);
+    offset += src.size();
+}
+
+std::size_t getIntTypeSize(IntType intType)
+{
+    switch(intType)
+    {
+        case IntType::INT64:
+            return sizeof(std::int64_t);
+        case IntType::INT32:
+            return sizeof(std::int32_t);
+        case IntType::INT16:
+            return sizeof(std::int16_t);
+    }
+    return 0;
+}
+
 std::size_t getFieldTypeSize(FieldType fieldType)
 {
     switch(fieldType)
@@ -134,21 +163,68 @@ bool isValidString32(const std::string& str)
     return true;
 }
 
+std::byte encodeFieldType(const FieldType& fieldType)
+{
+    switch(fieldType)
+    {
+        case FieldType::INT64:
+        case FieldType::STRING32:
+            return static_cast<std::byte>(fieldType);
+    }
+    throw std::invalid_argument("Invalid FieldType!");
+}
+
+std::vector<std::byte> encodeIntType(const SupportIntType& intValue)
+{
+    if(std::holds_alternative<std::int64_t>(intValue))
+    {   
+        std::size_t byteCount = 8;
+        std::int64_t int64Type = std::get<std::int64_t>(intValue);
+        std::uint64_t uint64Type = static_cast<std::uint64_t>(int64Type); // Needed for encoding correctly!
+        std::vector<std::byte> byteArray(byteCount, std::byte{0}); // 8 Byte empty array all init to 0
+        for(std::size_t currentByte = 0 ; currentByte < byteCount; ++currentByte)
+        {
+            byteArray[currentByte] = static_cast<std::byte>(uint64Type >> (currentByte * 8) & 0xFF);
+        }
+
+        return byteArray;
+    }
+    else if(std::holds_alternative<std::int32_t>(intValue))
+    {
+        std::size_t byteCount = 4;
+        std::int32_t int32Type = std::get<std::int32_t>(intValue);
+        std::uint32_t uint32Type = static_cast<std::uint32_t>(int32Type); // Needed for encoding correctly!
+        std::vector<std::byte> byteArray(byteCount, std::byte{0}); // 4 Byte empty array all init to 0
+        for(std::size_t currentByte = 0 ; currentByte < byteCount; ++currentByte)
+        {
+            byteArray[currentByte] = static_cast<std::byte>(uint32Type >> (currentByte * 8) & 0xFF);
+        }
+
+        return byteArray;
+    }
+    else if(std::holds_alternative<std::int16_t>(intValue))
+    {
+        std::size_t byteCount = 2;
+        std::int16_t int16Type = std::get<std::int16_t>(intValue);
+        std::uint16_t uint16Type = static_cast<std::uint16_t>(int16Type); // Needed for encoding correctly!
+        std::vector<std::byte> byteArray(byteCount, std::byte{0}); // 2 Byte empty array all init to 0
+        for(std::size_t currentByte = 0 ; currentByte < byteCount; ++currentByte)
+        {
+            byteArray[currentByte] = static_cast<std::byte>(uint16Type >> (currentByte * 8) & 0xFF);
+        }
+
+        return byteArray;
+    }
+    else throw std::invalid_argument("Could not match int type!");
+}
+
 // Throws invalid_argument if tupleValue doesn't match a variant
 // Basically just creates a byte vector for the tuple... no header info just pure raw byte tuple data
 std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
 {
     if(std::holds_alternative<std::int64_t>(tupleValue))
     {
-        std::int64_t int64TupleVal = std::get<std::int64_t>(tupleValue);
-        std::uint64_t uint64TupleVal = static_cast<std::uint64_t>(int64TupleVal); // Needed for encoding correctly!
-        std::vector<std::byte> byteArray(8, std::byte{0}); // 8 Byte empty array all init to 0
-        for(std::size_t currentByte = 0 ; currentByte < 8; ++currentByte)
-        {
-            byteArray[currentByte] = static_cast<std::byte>(uint64TupleVal >> (currentByte * 8) & 0xFF);
-        }
-
-        return byteArray;
+        return encodeIntType(std::get<std::int64_t>(tupleValue));
     }
     else if(std::holds_alternative<std::string>(tupleValue))
     {
@@ -163,16 +239,38 @@ std::vector<std::byte> encodeTupleValue(const TupleValue& tupleValue)
     
 }
 
-// Takes in the raw bytes and based on the field type passed in, attempts to create a TupleValue of that type
-TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
+std::vector<std::byte> encodeSchemaField(const std::vector<Field>& schemaField)
 {
-    if(bytes.size() != getFieldTypeSize(fieldType)) throw std::invalid_argument("Byte length doesn't match fieldType!");
-
-    if(fieldType == FieldType::INT64)
+    // 2 Bytes for # of fields. ( 34 Bytes : 32 Bytes for field name + 2 Bytes for field type ) * # of fields
+    std::size_t schemaFieldByteSize = 2 + 34 * schemaField.size();
+    std::vector<std::byte> encodedSchemaField;
+    std::uint16_t fieldCount = schemaField.size();
+    std::vector<std::byte> fieldCountBytes = encodeIntType(fieldCount);
+    appendBytes(encodedSchemaField, fieldCountBytes);
+    
+    for(Field& field : schemaField)
     {
+        std::vector<std::byte> fieldNameBytes = encodeTupleValue(field.name);
+        std::byte fieldTypeByte = encodeFieldType(field.type);
+        appendBytes(encodedSchemaField, fieldNameBytes);
+        encodedSchemaField.push_back(fieldTypeByte);
+    }
+
+    if(encodedSchemaField.size() != schemaFieldByteSize) throw std::invalid_argument("encoded schema field byte size doesn't match mathmatically");
+
+    return encodedSchemaField;
+}
+
+SupportedIntType decodeIntType(const std::vector<std::byte>& bytes, IntType intType)
+{
+    if(bytes.size() != getIntTypeSize(intType)) throw std::invalid_argument("Byte length doesn't match intType!");
+
+    if(intType == IntType::INT64)
+    {
+        std::size_t byteCount = 8;
         std::uint64_t value = 0; // Bit-wise, everything is set to 0
 
-        for(std::size_t currentByte = 0 ; currentByte < 8; ++currentByte)
+        for(std::size_t currentByte = 0 ; currentByte < byteCount; ++currentByte)
         {
             std::uint64_t byteValue = static_cast<std::uint64_t>(bytes[currentByte]);
             byteValue = byteValue << (currentByte * 8); // Want to shift the byteValue to the left s.t. it get's OR'd into its correct position
@@ -181,9 +279,57 @@ TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
             value |= byteValue;
         }
 
-        std::int64_t tupleValue;
-        memcpy(&tupleValue, &value, sizeof(std::int64_t));
-        return tupleValue;
+        std::int64_t int64Value;
+        memcpy(&int64Value, &value, sizeof(std::int64_t));
+        return int64Value;
+    }
+    else if(intType == IntType::INT32)
+    {
+        std::size_t byteCount = 4;
+        std::uint32_t value = 0; // Bit-wise, everything is set to 0
+
+        for(std::size_t currentByte = 0 ; currentByte < byteCount; ++currentByte)
+        {
+            std::uint32_t byteValue = static_cast<std::uint32_t>(bytes[currentByte]);
+            byteValue = byteValue << (currentByte * 8); // Want to shift the byteValue to the left s.t. it get's OR'd into its correct position
+            
+            // Because every bit in value is default set to 0, any OR with a retrieved byte will set the bit... meaning we get the correct bytes
+            value |= byteValue;
+        }
+
+        std::int32_t int32Value;
+        memcpy(&int32Value, &value, sizeof(std::int32_t));
+        return int32Value;
+    }
+    else if(intType == IntType::INT16)
+    {
+        std::size_t byteCount = 2;
+        std::uint16_t value = 0; // Bit-wise, everything is set to 0
+
+        for(std::size_t currentByte = 0 ; currentByte < byteCount; ++currentByte)
+        {
+            std::uint16_t byteValue = static_cast<std::uint16_t>(bytes[currentByte]);
+            byteValue = byteValue << (currentByte * 8); // Want to shift the byteValue to the left s.t. it get's OR'd into its correct position
+            
+            // Because every bit in value is default set to 0, any OR with a retrieved byte will set the bit... meaning we get the correct bytes
+            value |= byteValue;
+        }
+
+        std::int16_t int16Value;
+        memcpy(&int16Value, &value, sizeof(std::int16_t));
+        return int16Value;
+    }
+    else throw std::invalid_argument("Could not match int type!");
+}
+
+// Takes in the raw bytes and based on the field type passed in, attempts to create a TupleValue of that type
+TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
+{
+    if(bytes.size() != getFieldTypeSize(fieldType)) throw std::invalid_argument("Byte length doesn't match fieldType!");
+
+    if(fieldType == FieldType::INT64)
+    {
+        return decodeIntType(bytes, IntType::INT64);
     }
     else if(fieldType == FieldType::STRING32)
     {
@@ -205,4 +351,24 @@ TupleValue decodeBytes(const std::vector<std::byte>& bytes, FieldType fieldType)
         return tupleValue;
     }
     else throw std::invalid_argument("Could not match field type!");
+}
+
+FieldType decodeFieldType(std::byte& byte)
+{
+    std::uint8_t fieldTypeValue = static_cast<std::uint8_t>(byte);
+    switch(fieldTypeValue)
+    {
+        case 0:
+            return FieldType::INT64;
+        case 1:
+            return FieldType::STRING32;
+    }
+    throw std::invalid_argument("Could not match field type!");
+}
+
+std::vector<Field> decodeSchemaField(const std::vector<std::byte>& bytes)
+{
+    // First 2 bytes are the # of schema fields
+    // Use that to determine bytes to read
+    // std::size_t schemaFieldByteSize = 34 * # of fields 
 }
