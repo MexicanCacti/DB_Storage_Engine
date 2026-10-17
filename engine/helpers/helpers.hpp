@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <bitset>
+#include <cstddef>
 #include <algorithm>
 #include <stdexcept>
 

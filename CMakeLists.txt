@@ -12,6 +12,7 @@ target_sources(${PROJECT_NAME}
         engine/basic_types/basic_types.cpp
         engine/basic_types/basic_types_encode_decode.cpp
         engine/helpers/helpers.cpp
+        engine/page/page.cpp
 )
 
 # Include all DB Directories
@@ -19,12 +20,14 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE 
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/helpers
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine/page
 
     # Include all DB directories that contain the .hpp files
     PUBLIC
         # where top-level project will look for the library's public headers
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/helpers>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/page>
         # where external projects will look for the library's public headers
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -56,6 +59,7 @@ set(public_headers
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types/basic_types.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types/basic_types_encode_decode.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/helpers/helpers.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine/page/page.hpp
 )
 
 set_target_properties(DB_STORAGE_LIBRARY PROPERTIES PUBLIC_HEADER "${public_headers}")

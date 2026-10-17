@@ -8,7 +8,6 @@
 #include <variant>
 #include <vector>
 #include <cstring> // Byte array
-#include <bitset>
 #include <stdexcept>
 #include <algorithm>
 
