@@ -1,8 +1,17 @@
 #include "tuple.hpp"
 
-const TupleValue* Tuple::getTupleValue(std::size_t index) const
+const FieldVariant& Tuple::getTupleValueIndex(std::size_t index)
 {
-    if(index < 0 || index >= values.size()) return nullptr;
+    if(index >= tupleValues.size()) throw std::invalid_argument("[getTupleValueIndex]: Invalid index into value list");
+    return tupleValues[index];
+}
 
-    return &values[index];
+std::vector<std::byte> Tuple::encode() const
+{
+    return encodeFieldVariantList(tupleValues);
+}
+
+std::vector<FieldVariant> Tuple::decode(const std::vector<std::byte>& bytes, const std::vector<Field>& schemaFieldList)
+{
+    return decodeFieldVariantList(bytes, schemaFieldList);
 }

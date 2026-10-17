@@ -26,7 +26,7 @@ Schema::Schema(const std::vector<Field>& fieldList)
 
 const Field& Schema::getField(std::size_t index) const
 {
-    if(index < 0 || index > schemaField.size()) throw std::invalid_argument("[getField]: Invalid index into field list");
+    if(index > schemaField.size()) throw std::invalid_argument("[getField]: Invalid index into field list");
     return schemaField[index];
 }
 

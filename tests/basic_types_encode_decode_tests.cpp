@@ -1055,3 +1055,543 @@ TEST(FieldListEncodingTests, EncodeCountGreaterThan255)
         EXPECT_EQ(decoded[i].type, fields[i].type);
     }
 }
+
+
+#include <gtest/gtest.h>
+
+#include "basic_types_encode_decode.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <stdexcept>
+#include <string>
+#include <variant>
+#include <vector>
+
+// ==========================================
+// encodeFieldVariantList Tests
+// ==========================================
+
+TEST(EncodeFieldVariantListTests, EncodeSingleInt64)
+{
+    std::vector<FieldVariant> values{
+        std::int64_t{123456}
+    };
+
+    std::vector<std::byte> expected{
+        std::byte{0x40}, std::byte{0xE2},
+        std::byte{0x01}, std::byte{0x00},
+        std::byte{0x00}, std::byte{0x00},
+        std::byte{0x00}, std::byte{0x00}
+    };
+
+    EXPECT_EQ(encodeFieldVariantList(values), expected);
+}
+
+TEST(EncodeFieldVariantListTests, EncodeSingleString32)
+{
+    std::vector<FieldVariant> values{
+        std::string{"ABC"}
+    };
+
+    auto encoded = encodeFieldVariantList(values);
+
+    ASSERT_EQ(encoded.size(), 32);
+
+    EXPECT_EQ(encoded[0], std::byte{0x41});
+    EXPECT_EQ(encoded[1], std::byte{0x42});
+    EXPECT_EQ(encoded[2], std::byte{0x43});
+
+    for(std::size_t i = 3; i < 32; ++i)
+    {
+        EXPECT_EQ(encoded[i], std::byte{0x00});
+    }
+}
+
+TEST(EncodeFieldVariantListTests, EncodeMixedFieldTypes)
+{
+    std::vector<FieldVariant> values{
+        std::int64_t{42},
+        std::string{"Hello"},
+        std::int64_t{-1}
+    };
+
+    auto encoded = encodeFieldVariantList(values);
+
+    ASSERT_EQ(encoded.size(), 48);
+
+    // First INT64 occupies bytes 0-7
+    EXPECT_EQ(encoded[0], std::byte{0x2A});
+
+    for(std::size_t i = 1; i < 8; ++i)
+    {
+        EXPECT_EQ(encoded[i], std::byte{0x00});
+    }
+
+    // STRING32 occupies bytes 8-39
+    EXPECT_EQ(encoded[8], std::byte{0x48});
+    EXPECT_EQ(encoded[9], std::byte{0x65});
+    EXPECT_EQ(encoded[10], std::byte{0x6C});
+    EXPECT_EQ(encoded[11], std::byte{0x6C});
+    EXPECT_EQ(encoded[12], std::byte{0x6F});
+
+    for(std::size_t i = 13; i < 40; ++i)
+    {
+        EXPECT_EQ(encoded[i], std::byte{0x00});
+    }
+
+    // Final INT64 occupies bytes 40-47
+    for(std::size_t i = 40; i < 48; ++i)
+    {
+        EXPECT_EQ(encoded[i], std::byte{0xFF});
+    }
+}
+
+TEST(EncodeFieldVariantListTests, EncodeEmptyList)
+{
+    std::vector<FieldVariant> values;
+
+    auto encoded = encodeFieldVariantList(values);
+
+    EXPECT_TRUE(encoded.empty());
+}
+
+TEST(EncodeFieldVariantListTests, EncodeMultipleInt64Values)
+{
+    std::vector<FieldVariant> values{
+        std::int64_t{0},
+        std::int64_t{1},
+        std::int64_t{-1},
+        std::numeric_limits<std::int64_t>::min(),
+        std::numeric_limits<std::int64_t>::max()
+    };
+
+    auto encoded = encodeFieldVariantList(values);
+
+    EXPECT_EQ(encoded.size(), values.size() * 8);
+}
+
+TEST(EncodeFieldVariantListTests, EncodeMultipleString32Values)
+{
+    std::vector<FieldVariant> values{
+        std::string{""},
+        std::string{"A"},
+        std::string{"Hello"},
+        std::string(32, 'Z')
+    };
+
+    auto encoded = encodeFieldVariantList(values);
+
+    ASSERT_EQ(encoded.size(), values.size() * 32);
+
+    // Empty string is zero padded.
+    for(std::size_t i = 0; i < 32; ++i)
+    {
+        EXPECT_EQ(encoded[i], std::byte{0x00});
+    }
+
+    // Second string starts at byte 32.
+    EXPECT_EQ(encoded[32], std::byte{0x41});
+
+    // Fourth string starts at byte 96.
+    for(std::size_t i = 96; i < 128; ++i)
+    {
+        EXPECT_EQ(encoded[i], std::byte{0x5A});
+    }
+}
+
+TEST(EncodeFieldVariantListTests, RejectStringLongerThan32Bytes)
+{
+    std::vector<FieldVariant> values{
+        std::int64_t{10},
+        std::string(33, 'A')
+    };
+
+    EXPECT_THROW(
+        encodeFieldVariantList(values),
+        std::invalid_argument
+    );
+}
+
+TEST(EncodeFieldVariantListTests, RejectEmbeddedZeroByte)
+{
+    std::vector<FieldVariant> values{
+        std::string("AB\0CD", 5)
+    };
+
+    EXPECT_THROW(
+        encodeFieldVariantList(values),
+        std::invalid_argument
+    );
+}
+
+TEST(EncodeFieldVariantListTests, RejectInvalidUTF8)
+{
+    std::string invalidUTF8{
+        static_cast<char>(0xC0),
+        static_cast<char>(0x80)
+    };
+
+    std::vector<FieldVariant> values{
+        invalidUTF8
+    };
+
+    EXPECT_THROW(
+        encodeFieldVariantList(values),
+        std::invalid_argument
+    );
+}
+
+TEST(EncodeFieldVariantListTests, PreserveInputValues)
+{
+    std::vector<FieldVariant> values{
+        std::int64_t{100},
+        std::string{"Alice"}
+    };
+
+    auto original = values;
+
+    encodeFieldVariantList(values);
+
+    EXPECT_EQ(values, original);
+}
+
+// ==========================================
+// decodeFieldVariantList Tests
+// ==========================================
+
+TEST(DecodeFieldVariantListTests, DecodeSingleInt64)
+{
+    std::vector<Field> fields{
+        {"id", FieldType::INT64}
+    };
+
+    std::vector<std::byte> bytes{
+        std::byte{0x2A}, std::byte{0x00},
+        std::byte{0x00}, std::byte{0x00},
+        std::byte{0x00}, std::byte{0x00},
+        std::byte{0x00}, std::byte{0x00}
+    };
+
+    auto decoded = decodeFieldVariantList(bytes, fields);
+
+    ASSERT_EQ(decoded.size(), 1);
+    ASSERT_TRUE(std::holds_alternative<std::int64_t>(decoded[0]));
+
+    EXPECT_EQ(std::get<std::int64_t>(decoded[0]), 42);
+}
+
+TEST(DecodeFieldVariantListTests, DecodeSingleString32)
+{
+    std::vector<Field> fields{
+        {"name", FieldType::STRING32}
+    };
+
+    std::vector<std::byte> bytes(32, std::byte{0});
+
+    bytes[0] = std::byte{0x41};
+    bytes[1] = std::byte{0x42};
+    bytes[2] = std::byte{0x43};
+
+    auto decoded = decodeFieldVariantList(bytes, fields);
+
+    ASSERT_EQ(decoded.size(), 1);
+    ASSERT_TRUE(std::holds_alternative<std::string>(decoded[0]));
+
+    EXPECT_EQ(std::get<std::string>(decoded[0]), "ABC");
+}
+
+TEST(DecodeFieldVariantListTests, DecodeMixedFieldTypes)
+{
+    std::vector<Field> fields{
+        {"id", FieldType::INT64},
+        {"name", FieldType::STRING32},
+        {"age", FieldType::INT64}
+    };
+
+    std::vector<FieldVariant> values{
+        std::int64_t{42},
+        std::string{"Alice"},
+        std::int64_t{25}
+    };
+
+    auto encoded = encodeFieldVariantList(values);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    ASSERT_EQ(decoded.size(), 3);
+
+    EXPECT_EQ(std::get<std::int64_t>(decoded[0]), 42);
+    EXPECT_EQ(std::get<std::string>(decoded[1]), "Alice");
+    EXPECT_EQ(std::get<std::int64_t>(decoded[2]), 25);
+}
+
+TEST(DecodeFieldVariantListTests, DecodeEmptyList)
+{
+    std::vector<Field> fields;
+    std::vector<std::byte> bytes;
+
+    auto decoded = decodeFieldVariantList(bytes, fields);
+
+    EXPECT_TRUE(decoded.empty());
+}
+
+TEST(DecodeFieldVariantListTests, RejectTruncatedInt64)
+{
+    std::vector<Field> fields{
+        {"id", FieldType::INT64}
+    };
+
+    std::vector<std::byte> bytes(7, std::byte{0});
+
+    EXPECT_THROW(
+        decodeFieldVariantList(bytes, fields),
+        std::out_of_range
+    );
+}
+
+TEST(DecodeFieldVariantListTests, RejectTruncatedString32)
+{
+    std::vector<Field> fields{
+        {"name", FieldType::STRING32}
+    };
+
+    std::vector<std::byte> bytes(31, std::byte{0});
+
+    EXPECT_THROW(
+        decodeFieldVariantList(bytes, fields),
+        std::out_of_range
+    );
+}
+
+TEST(DecodeFieldVariantListTests, RejectTruncatedMixedTuple)
+{
+    std::vector<Field> fields{
+        {"id", FieldType::INT64},
+        {"name", FieldType::STRING32}
+    };
+
+    // Enough bytes for INT64, but not STRING32.
+    std::vector<std::byte> bytes(20, std::byte{0});
+
+    EXPECT_THROW(
+        decodeFieldVariantList(bytes, fields),
+        std::out_of_range
+    );
+}
+
+TEST(DecodeFieldVariantListTests, RejectInvalidFieldType)
+{
+    std::vector<Field> fields{
+        {"id", static_cast<FieldType>(100)}
+    };
+
+    std::vector<std::byte> bytes(8, std::byte{0});
+
+    EXPECT_THROW(
+        decodeFieldVariantList(bytes, fields),
+        std::invalid_argument
+    );
+}
+
+TEST(DecodeFieldVariantListTests, RejectInvalidUTF8)
+{
+    std::vector<Field> fields{
+        {"name", FieldType::STRING32}
+    };
+
+    std::vector<std::byte> bytes(32, std::byte{0});
+
+    bytes[0] = std::byte{0xED};
+    bytes[1] = std::byte{0xA0};
+    bytes[2] = std::byte{0x80};
+
+    EXPECT_THROW(
+        decodeFieldVariantList(bytes, fields),
+        std::invalid_argument
+    );
+}
+
+TEST(DecodeFieldVariantListTests, RejectInvalidStringPadding)
+{
+    std::vector<Field> fields{
+        {"name", FieldType::STRING32}
+    };
+
+    std::vector<std::byte> bytes(32, std::byte{0});
+
+    bytes[0] = std::byte{0x41};
+    bytes[1] = std::byte{0x00};
+    bytes[2] = std::byte{0x42};
+
+    EXPECT_THROW(
+        decodeFieldVariantList(bytes, fields),
+        std::invalid_argument
+    );
+}
+
+// ==========================================
+// Round-Trip Tests
+// ==========================================
+
+TEST(FieldVariantListRoundTripTests, SingleInt64)
+{
+    std::vector<Field> fields{
+        {"id", FieldType::INT64}
+    };
+
+    std::vector<FieldVariant> original{
+        std::int64_t{-123456789}
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, SingleString32)
+{
+    std::vector<Field> fields{
+        {"name", FieldType::STRING32}
+    };
+
+    std::vector<FieldVariant> original{
+        std::string{"Hello World"}
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, MixedFieldTypes)
+{
+    std::vector<Field> fields{
+        {"id", FieldType::INT64},
+        {"firstName", FieldType::STRING32},
+        {"lastName", FieldType::STRING32},
+        {"balance", FieldType::INT64}
+    };
+
+    std::vector<FieldVariant> original{
+        std::int64_t{1001},
+        std::string{"Alice"},
+        std::string{"Smith"},
+        std::int64_t{-500}
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, Int64Boundaries)
+{
+    std::vector<Field> fields{
+        {"minimum", FieldType::INT64},
+        {"maximum", FieldType::INT64},
+        {"zero", FieldType::INT64},
+        {"negativeOne", FieldType::INT64}
+    };
+
+    std::vector<FieldVariant> original{
+        std::numeric_limits<std::int64_t>::min(),
+        std::numeric_limits<std::int64_t>::max(),
+        std::int64_t{0},
+        std::int64_t{-1}
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, EmptyAndFullStrings)
+{
+    std::vector<Field> fields{
+        {"empty", FieldType::STRING32},
+        {"full", FieldType::STRING32}
+    };
+
+    std::vector<FieldVariant> original{
+        std::string{""},
+        std::string(32, 'A')
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, MultibyteUTF8)
+{
+    std::vector<Field> fields{
+        {"twoByte", FieldType::STRING32},
+        {"threeByte", FieldType::STRING32},
+        {"fourByte", FieldType::STRING32}
+    };
+
+    std::vector<FieldVariant> original{
+        std::string{
+            static_cast<char>(0xC2),
+            static_cast<char>(0xA2)
+        },
+        std::string{
+            static_cast<char>(0xE2),
+            static_cast<char>(0x82),
+            static_cast<char>(0xAC)
+        },
+        std::string{
+            static_cast<char>(0xF0),
+            static_cast<char>(0x9F),
+            static_cast<char>(0x98),
+            static_cast<char>(0x80)
+        }
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, PreserveFieldOrder)
+{
+    std::vector<Field> fields{
+        {"first", FieldType::STRING32},
+        {"second", FieldType::INT64},
+        {"third", FieldType::STRING32},
+        {"fourth", FieldType::INT64}
+    };
+
+    std::vector<FieldVariant> original{
+        std::string{"First"},
+        std::int64_t{100},
+        std::string{"Third"},
+        std::int64_t{200}
+    };
+
+    auto encoded = encodeFieldVariantList(original);
+    auto decoded = decodeFieldVariantList(encoded, fields);
+
+    EXPECT_EQ(decoded, original);
+}
+
+TEST(FieldVariantListRoundTripTests, EncodingIsDeterministic)
+{
+    std::vector<FieldVariant> values{
+        std::int64_t{42},
+        std::string{"Hello"},
+        std::int64_t{-1}
+    };
+
+    auto firstEncoding = encodeFieldVariantList(values);
+    auto secondEncoding = encodeFieldVariantList(values);
+
+    EXPECT_EQ(firstEncoding, secondEncoding);
+}

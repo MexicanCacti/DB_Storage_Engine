@@ -135,6 +135,16 @@ std::vector<std::byte> encodeFieldList(const std::vector<Field>& fieldList)
     return byteArray;
 }
 
+std::vector<std::byte> encodeFieldVariantList(const std::vector<FieldVariant>& fieldVariantList)
+{
+    std::vector<std::byte> byteArray;
+    for(const FieldVariant& fieldVariant : fieldVariantList)
+    {
+        std::vector<std::byte> fieldVariantBytes = encodeFieldVariant(fieldVariant);
+        appendBytes(byteArray, fieldVariantBytes);
+    }
+    return byteArray;
+}
 
 FieldVariant decodeFieldVariant(const std::vector<std::byte>& bytes, FieldType fieldType)
 {
@@ -312,4 +322,20 @@ std::vector<Field> decodeFieldList(const std::vector<std::byte>& bytes)
     }
 
     return fieldList;
+}
+
+std::vector<FieldVariant> decodeFieldVariantList(const std::vector<std::byte>& bytes, const std::vector<Field>& fieldList)
+{
+    size_t currentField = 0;
+    size_t offset = 0;
+    std::vector<FieldVariant> fieldVariantList;
+    while(currentField < fieldList.size())
+    {
+        FieldType fieldType = fieldList[currentField++].type;
+        std::vector<std::byte> fieldByteArray(getFieldTypeSize(fieldType), std::byte{0});
+        copyNBytesSrcOffset(fieldByteArray, bytes, offset, getFieldTypeSize(fieldType));   
+        fieldVariantList.push_back(decodeFieldVariant(fieldByteArray, fieldType));
+    }
+
+    return fieldVariantList;
 }
