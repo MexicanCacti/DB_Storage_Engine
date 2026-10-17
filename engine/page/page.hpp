@@ -22,7 +22,7 @@ struct PageID {
     std::int64_t pageNumber; 
 };
 
-const std::int16_t pageByteLength = 4096;
+const std::size_t PAGE_BYTE_LENGTH = 4096;
 
 class Page
 {
@@ -31,10 +31,11 @@ class Page
         std::vector<std::byte> pageBytes;
 
     public:
-        Page(const PageID& pageID) : pageID(pageID) {pageBytes = std::vector<std::byte>(pageByteLength, std::byte{0});}
+        Page(const PageID& pageID) : pageID(pageID) {pageBytes = std::vector<std::byte>(PAGE_BYTE_LENGTH, std::byte{0});}
         Page(const PageID& pageID, const std::vector<std::byte>& dataBytes);
         const PageID& getPageID() const {return pageID;}
         const std::int64_t& getPageNumber() const {return pageID.pageNumber;}
         const std::int64_t& getTableID() const {return pageID.tableID;}
         const std::vector<std::byte>& getPageBytes() const {return pageBytes;}
+        const std::size_t& getPageSize() const {return PAGE_BYTE_LENGTH;}
 };

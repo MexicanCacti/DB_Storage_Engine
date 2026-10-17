@@ -21,6 +21,7 @@ std::vector<std::byte> encodeField(const Field& field);
 
 std::vector<std::byte> encodeFieldList(const std::vector<Field>& fieldList);
 
+// Encode field variant list
 
 FieldVariant decodeFieldVariant(const std::vector<std::byte>& bytes, FieldType fieldType);
 
@@ -33,3 +34,5 @@ IntType decodeIntType(const std::byte& byte);
 Field decodeField(const std::vector<std::byte>& bytes);
 
 std::vector<Field> decodeFieldList(const std::vector<std::byte>& bytes);
+
+// decode field variant list
