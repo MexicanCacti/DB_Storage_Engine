@@ -1056,19 +1056,6 @@ TEST(FieldListEncodingTests, EncodeCountGreaterThan255)
     }
 }
 
-
-#include <gtest/gtest.h>
-
-#include "basic_types_encode_decode.hpp"
-
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-#include <stdexcept>
-#include <string>
-#include <variant>
-#include <vector>
-
 // ==========================================
 // encodeFieldVariantList Tests
 // ==========================================
