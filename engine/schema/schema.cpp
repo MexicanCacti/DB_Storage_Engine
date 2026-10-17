@@ -1,14 +1,14 @@
 #include "schema.hpp"
 
 Schema::Schema(const std::vector<Field>& fieldList)
-    : schemaFields(fieldList)
+    : schemaField(fieldList)
 {
     std::size_t width = 0;
 
     // Validate Schema... Unique names & Tuple Width fits
     std::unordered_set<std::string> fieldNames;
 
-    for(const Field& field : schemaFields)
+    for(const Field& field : schemaField)
     {
         if(fieldNames.find(field.name) != fieldNames.end()) throw std::invalid_argument("[Schema]: Duplicate field name: " + field.name);
         std::size_t fieldSize = getFieldTypeSize(field.type);
@@ -24,11 +24,17 @@ Schema::Schema(const std::vector<Field>& fieldList)
     }
 }
 
+const Field& Schema::getField(std::size_t index) const
+{
+    if(index < 0 || index > schemaField.size()) throw std::invalid_argument("[getField]: Invalid index into field list");
+    return schemaField[index];
+}
+
 std::size_t Schema::getTupleWidth() const
 {
     std::size_t width = 0;
 
-    for(const Field& field : schemaFields)
+    for(const Field& field : schemaField)
     {
         width += getFieldTypeSize(field.type);
     }
@@ -38,10 +44,10 @@ std::size_t Schema::getTupleWidth() const
 
 std::vector<std::byte> Schema::encode() const
 {   
-    return encodeFieldList(schemaFields);
+    return encodeFieldList(schemaField);
 }
 
-static std::vector<Field> Schema::decode(const std::vector<std::byte>& bytes) const
+std::vector<Field> Schema::decode(const std::vector<std::byte>& bytes)
 {
     return decodeFieldList(bytes);
 }
@@ -58,5 +64,5 @@ bool Schema::isValidTuple(const std::vector<FieldVariant>& tupleValueList) const
         if(schemaField[i].type == FieldType::STRING32 && (!std::holds_alternative<std::string>(tupleVal) || !isValidString32(std::get<std::string>(tupleVal))) ) return false;
     }
 
-    return true
+    return true;
 }
