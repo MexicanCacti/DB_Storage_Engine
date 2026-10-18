@@ -27,9 +27,9 @@ class Page
     private:
         PageID pageID;
         std::vector<std::byte> pageBytes;
-
     public:
-        Page(const PageID& pageID) : pageID(pageID) {pageBytes = std::vector<std::byte>(PAGE_BYTE_LENGTH, std::byte{0});}
+        Page();
+        Page(const PageID& pageID);
         Page(const PageID& pageID, const std::vector<std::byte>& dataBytes);
         const PageID& getPageID() const {return pageID;}
         const std::int64_t& getPageNumber() const {return pageID.pageNumber;}
