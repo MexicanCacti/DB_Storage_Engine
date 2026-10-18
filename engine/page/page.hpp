@@ -8,23 +8,12 @@
 #include "basic_types.hpp"
 #include "helpers.hpp"
 
-/*
-    Page Byte setup:
-        {Header = 24 Bytes}
-        {Bitmaps = 16 Bytes total}
-        {200 x 20 Tuple Data ... 4000 Bytes} ... Max tuple width = 200 so 20 slots
-        {56 Byte padding}
-
-*/
+// This class is solely just to store the raw bytes read from a file
+// Will also be used to hold bytes to be written to file later
 
 struct PageID {
     std::int64_t tableID;
     std::int64_t pageNumber;
-};
-
-struct RID {
-    PageID pageID;
-    std::int16_t tupleSlot;
 };
 
 class Page
