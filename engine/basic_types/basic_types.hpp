@@ -11,6 +11,19 @@ using IntVariant = std::variant<std::int64_t, std::int32_t, std::int16_t, std::i
 
 const std::size_t PAGE_BYTE_LENGTH = 4096;
 
+/*
+    H + 2 * B(n) + n * R <= 4096
+    So since the max tuple width would be n = 1 & H is always 24 & so then B(1) = 8 x ceil(1/64) = 8
+    24 + 2 * 8 + R <= 4096
+    24 + 16 + R <= 4096
+    R <= 4056
+    So therefore the max_tuple_width is 4056, any larger no room for a tuple slot
+*/
+const std::size_t MAX_TUPLE_WIDTH = 4056;
+
+const std::int16_t FORMAT_VERSION = 1;
+const std::int16_t FORMAT_ID = 0;
+
 // enum types guaranteed to be 1 byte in size
 enum class FieldType : int8_t 
 {
