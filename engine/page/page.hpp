@@ -10,9 +10,8 @@
 
 /*
     Page Byte setup:
-        {Header: 8 byte reserved for log + 2 byte version # + 2 byte version ID + 2 byte tuple width + 2 byte slot cap + 2 byte alloc slot count + 6 byte pad} H = 24 bytes 
-        {8 Byte alloc bit map}
-        {8 byte del bit map}
+        {Header = 24 Bytes}
+        {Bitmaps = 16 Bytes total}
         {200 x 20 Tuple Data ... 4000 Bytes} ... Max tuple width = 200 so 20 slots
         {56 Byte padding}
 
@@ -20,7 +19,12 @@
 
 struct PageID {
     std::int64_t tableID;
-    std::int64_t pageNumber; 
+    std::int64_t pageNumber;
+};
+
+struct RID {
+    PageID pageID;
+    std::int16_t tupleSlot;
 };
 
 class Page

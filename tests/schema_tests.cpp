@@ -5,6 +5,14 @@
 // Construction Tests
 // ==========================================
 
+TEST(ConstructionTests, EmptyList)
+{
+    std::vector<Field> empty;
+    EXPECT_THROW(
+        Schema s(empty), std::invalid_argument
+    );
+}
+
 TEST(ConstructionTests, DuplicateNames)
 {
     std::vector<Field> sameTypeSameNames = std::vector<Field>{

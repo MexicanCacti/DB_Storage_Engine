@@ -3,6 +3,8 @@
 Schema::Schema(const std::vector<Field>& fieldList)
     : schemaField(fieldList)
 {
+
+    if(fieldList.empty()) throw std::invalid_argument("[Schema]: Schema cannot be empty");
     std::size_t width = 0;
 
     // Validate Schema... Unique names & Tuple Width fits
@@ -22,24 +24,14 @@ Schema::Schema(const std::vector<Field>& fieldList)
         errorMsg += "\tMax Width = " + std::to_string(MAX_TUPLE_WIDTH);
         throw std::invalid_argument("[Schema]: " + errorMsg);
     }
+
+    tupleWidth = width;
 }
 
 const Field& Schema::getField(std::size_t index) const
 {
-    if(index > schemaField.size()) throw std::invalid_argument("[getField]: Invalid index into field list");
+    if(index >= schemaField.size()) throw std::invalid_argument("[getField]: Invalid index into field list");
     return schemaField[index];
-}
-
-std::size_t Schema::getTupleWidth() const
-{
-    std::size_t width = 0;
-
-    for(const Field& field : schemaField)
-    {
-        width += getFieldTypeSize(field.type);
-    }
-
-    return width;
 }
 
 std::vector<std::byte> Schema::encode() const

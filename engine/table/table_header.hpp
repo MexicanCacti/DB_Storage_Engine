@@ -2,9 +2,6 @@
 
 #include "schema.hpp"
 
-// This will be Page 0 for the heap file
-// So when we read... read from file -> Page... THen if first page, use Page Bytes -> TableHeader
-
 class TableHeader 
 {
     private:
