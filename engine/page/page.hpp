@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cstdint>
 
+#include "basic_types.hpp"
 #include "helpers.hpp"
 
 /*
@@ -21,8 +22,6 @@ struct PageID {
     std::int64_t tableID;
     std::int64_t pageNumber; 
 };
-
-const std::size_t PAGE_BYTE_LENGTH = 4096;
 
 class Page
 {

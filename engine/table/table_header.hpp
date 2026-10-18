@@ -1,16 +1,21 @@
 #pragma once
-#include "../schema/schema.hpp"
 
+#include "schema.hpp"
 
-class TableHeader {
+// This will be Page 0 for the heap file
+// So when we read... read from file -> Page... THen if first page, use Page Bytes -> TableHeader
+
+class TableHeader 
+{
     private:
         std::string tableName;
-        std::int16_t tableID;
+        std::int64_t tableID;
         Schema tableSchema;
     public:
-        TableHeader(std::string& tableName, std::int16_t tableID, const Schema& tableSchema);
-        const Schema& getSchema() const { return tableSchema;}
-        const std::int16_t& getTableID() const { return tableID; }
-        const std::vector<std::byte> encodeTableHeader(); 
-        static TableHeader decodeTableHeader(std::vector<std::byte>& tableHeaderBytes);
+        TableHeader(const std::string& tableName, std::int64_t tableID, const Schema& tableSchema);
+
+        const Schema& getSchema() const {return tableSchema;}
+        const std::int64_t& getTableID() const {return tableID;}
+        const std::vector<std::byte> encode();
+        static TableHeader decode(const std::vector<std::byte>& tableHeaderBytes);
 };
