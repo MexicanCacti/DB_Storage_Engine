@@ -1,6 +1,7 @@
+/*
 #pragma once
 
-/*
+
     Page Byte setup:
         {Header = 24 Bytes}
         {Bitmaps = B(n) = 8 * ceil(n / 64)}
@@ -15,7 +16,7 @@
         R = tuple width
 
     Note: Bitmap not actually saved explicitly
-*/
+
 
 struct RID {
     PageID pageID;
@@ -66,3 +67,4 @@ class DataPage
 
         void deleteTuple(std::size_t slotIndex);
 };
+*/

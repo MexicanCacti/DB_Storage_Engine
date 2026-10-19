@@ -10,6 +10,7 @@ using FieldVariant = std::variant<std::int64_t, std::string>;
 using IntVariant = std::variant<std::int64_t, std::int32_t, std::int16_t, std::int8_t>;
 
 const std::size_t PAGE_BYTE_LENGTH = 4096;
+const std::size_t HEADER_BYTE_LENGTH = 24;
 
 /*
     H + 2 * B(n) + n * R <= 4096
