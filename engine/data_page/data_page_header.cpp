@@ -130,3 +130,14 @@ std::vector<std::byte> PageHeader::encode() const
 
     return pageHeaderBytes;
 }
+
+ bool PageHeader::similarFormats(const PageHeader& p1, const PageHeader& p2)
+ {
+    if(p1.getFormatVersion() != p2.getFormatVersion()) return false;
+    if(p1.getFormatID() != p2.getFormatID()) return false;
+    if(p1.getTupleWidth() != p2.getTupleWidth()) return false;
+    if(p1.getSlotCapacity() != p2.getSlotCapacity()) return false;
+
+    return true;
+
+ }

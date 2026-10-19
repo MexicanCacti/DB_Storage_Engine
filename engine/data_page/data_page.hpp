@@ -30,6 +30,7 @@ class DataPage
     private:
         Page& page;
 
+        void writePageHeader();
         //std::size_t getAllocationBitmapOffset() const;
         //std::size_t getDeletionBitmapOffset() const;
 
@@ -39,17 +40,19 @@ class DataPage
     public:
         DataPage(Page& page);
 
+        // Initalize & open should have DataPage referencing the correct page!
         // Zero-filled w/ header created correctly
-        void Initialize(Page& page, std::int16_t tupleWidth);
-        void Open(Page& page, std::int16_t expectedTupleWidth);
+        void Initialize(std::int16_t tupleWidth);
+
+        void Open(std::int16_t expectedTupleWidth);
 
         const PageID& getPageID() const {return page.getPageID();}
         const Page& getPageConst() const {return page;}
         Page& getPage() {return page;}
-        PageHeader getPageHeader() const {return pageHeader;}
-        std::int16_t getTupleWidth() const {return pageHeader.tupleWidth;}
-        std::int16_t getSlotCapacity() const {return pageHeader.slotCapacity;}
-        std::int16_t getAllocatedSlotCount() const {return pageHeader.allocatedSlotCount;}
+        PageHeader getPageHeader() const {return PageHeader::decode(page.getPageBytesConst());}
+        std::int16_t getTupleWidth() const {return PageHeader::getTupleWidth(page.getPageBytesConst());}
+        std::int16_t getSlotCapacity() const {return PageHeader::getSlotCapacity(page.getPageBytesConst());}
+        std::int16_t getAllocatedSlotCount() const {return PageHeader::getAllocatedSlotCount(page.getPageBytesConst());}
         std::size_t getSlotOffset(std::size_t slotIndex) const;
 
         bool isAllocated(std::size_t slotIndex) const;

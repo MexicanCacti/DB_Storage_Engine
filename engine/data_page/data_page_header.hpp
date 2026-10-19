@@ -42,4 +42,6 @@ class PageHeader
 
         static PageHeader decode(const std::vector<std::byte>& headerBytes);
         std::vector<std::byte> encode() const;
+
+        static bool similarFormats(const PageHeader& p1, const PageHeader& p2);
 };
