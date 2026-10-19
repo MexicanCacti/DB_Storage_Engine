@@ -50,3 +50,4 @@ std::size_t getFieldTypeSize(FieldType fieldType);
 std::size_t getIntTypeSize(IntType intType);
 
 bool isValidString32(const std::string& str);
+
