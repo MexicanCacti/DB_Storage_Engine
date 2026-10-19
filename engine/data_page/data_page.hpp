@@ -1,7 +1,6 @@
-/*
 #pragma once
-
-
+#include "data_page_header.hpp"
+    /*
     Page Byte setup:
         {Header = 24 Bytes}
         {Bitmaps = B(n) = 8 * ceil(n / 64)}
@@ -16,7 +15,7 @@
         R = tuple width
 
     Note: Bitmap not actually saved explicitly
-
+    */
 
 struct RID {
     PageID pageID;
@@ -31,31 +30,26 @@ class DataPage
     private:
         Page& page;
 
-        PageHeader readHeader() const;
+        //std::size_t getAllocationBitmapOffset() const;
+        //std::size_t getDeletionBitmapOffset() const;
 
-        void writeHeader(const PageHeader& header);
-
-        std::size_t getAllocationBitmapOffset() const;
-        std::size_t getDeletionBitmapOffset() const;
-
-        bool getBitmapBit(std::size_t bitmapOffset, std::size_t slotIndex) const;
-        void setBitmapBit(std::size_t bitmapOffset, std::size_t slotIndex, bool value);
+        //bool getBitmapBit(std::size_t bitmapOffset, std::size_t slotIndex) const;
+        //void setBitmapBit(std::size_t bitmapOffset, std::size_t slotIndex, bool value);
 
     public:
         DataPage(Page& page);
 
         // Zero-filled w/ header created correctly
-        static void Initialize(Page& page, std::int16_t tupleWidth);
+        void Initialize(Page& page, std::int16_t tupleWidth);
+        void Open(Page& page, std::int16_t expectedTupleWidth);
 
         const PageID& getPageID() const {return page.getPageID();}
         const Page& getPageConst() const {return page;}
         Page& getPage() {return page;}
-
-        PageHeader getPageHeader() const;
-        std::int16_t getTupleWidth() const;
-        std::int16_t getSlotCapacity() const;
-        std::int16_t getAllocatedSlotCount() const;
-
+        PageHeader getPageHeader() const {return pageHeader;}
+        std::int16_t getTupleWidth() const {return pageHeader.tupleWidth;}
+        std::int16_t getSlotCapacity() const {return pageHeader.slotCapacity;}
+        std::int16_t getAllocatedSlotCount() const {return pageHeader.allocatedSlotCount;}
         std::size_t getSlotOffset(std::size_t slotIndex) const;
 
         bool isAllocated(std::size_t slotIndex) const;
@@ -64,7 +58,5 @@ class DataPage
 
         RID insertTuple(const std::vector<std::byte>& encodedTuple);
         std::vector<std::byte> readTuple(std::size_t slotIndex) const;
-
         void deleteTuple(std::size_t slotIndex);
 };
-*/

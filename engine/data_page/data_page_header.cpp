@@ -26,7 +26,7 @@ void PageHeader::setAllocatedSlotCount(std::int16_t allocatedCount)
 
 std::size_t PageHeader::calcBitmapSize(std::size_t slotCapacity)
 {
-    return 8 * ( (slotCapacity + 63) / 64);
+    return 8 * std::ceil( (slotCapacity + 63) / 64);
 }
 
     // H + 2 * B(n) + n * R <= 4096, H = header size, R = Tuple Width
@@ -38,43 +38,81 @@ std::size_t PageHeader::calcSlotCapacity(std::int16_t tupleWidth)
     for(potentialCapacity; potentialCapacity <= (PAGE_BYTE_LENGTH - HEADER_BYTE_LENGTH) / tupleWidth ; ++potentialCapacity)
     {
         std::size_t bitMapSize = calcBitmapSize(potentialCapacity);
-        std::size_t totalPageSizeWithSlotCapacity = HEADER_BYTE_LENGTH + 2 * bitMapSize + potentialCapacity * tupleWidth;
+        std::size_t totalPageSizeWithSlotCapacity = HEADER_BYTE_LENGTH + (2 * bitMapSize) + (potentialCapacity * tupleWidth);
         if(totalPageSizeWithSlotCapacity > PAGE_BYTE_LENGTH) break;
     }
 
+    if(potentialCapacity == 1) throw std::invalid_argument("[calcSlotCapacity]: Tuple cannot fit in page");
+
     return potentialCapacity - 1;
+}
+
+std::int64_t PageHeader::getLogSequenceNumber(const std::vector<std::byte>& headerBytes)
+{
+    std::size_t offset = 0;
+    std::vector<std::byte> logSequenceBytes(getIntTypeSize(IntType::INT64), std::byte{0});
+    copyNBytesSrcOffset(logSequenceBytes, headerBytes, offset, getIntTypeSize(IntType::INT64));
+    return std::get<std::int64_t>(decodeIntVariant(logSequenceBytes, IntType::INT64));
+}
+
+std::int16_t PageHeader::getFormatVersion(const std::vector<std::byte>& headerBytes)
+{
+    std::size_t offset = 8;
+    std::vector<std::byte> formatVersionBytes(getIntTypeSize(IntType::INT16), std::byte{0});
+    copyNBytesSrcOffset(formatVersionBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
+    return std::get<std::int16_t>(decodeIntVariant(formatVersionBytes, IntType::INT16));
+}
+
+std::int16_t PageHeader::getFormatID(const std::vector<std::byte>& headerBytes)
+{
+    std::size_t offset = 10;
+    std::vector<std::byte> formatIDBytes(getIntTypeSize(IntType::INT16), std::byte{0});
+    copyNBytesSrcOffset(formatIDBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
+    return std::get<std::int16_t>(decodeIntVariant(formatIDBytes, IntType::INT16));
+}
+
+std::int16_t PageHeader::getTupleWidth(const std::vector<std::byte>& headerBytes)
+{
+    std::size_t offset = 12;
+    std::vector<std::byte> tupleWidthBytes(getIntTypeSize(IntType::INT16), std::byte{0});
+    copyNBytesSrcOffset(tupleWidthBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
+    return std::get<std::int16_t>(decodeIntVariant(tupleWidthBytes, IntType::INT16));
+}
+
+std::int16_t PageHeader::getSlotCapacity(const std::vector<std::byte>& headerBytes)
+{
+    std::size_t offset = 14;
+    std::vector<std::byte> slotCapacityBytes(getIntTypeSize(IntType::INT16), std::byte{0});
+    copyNBytesSrcOffset(slotCapacityBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
+    return std::get<std::int16_t>(decodeIntVariant(slotCapacityBytes, IntType::INT16));
+}
+
+std::int16_t PageHeader::getAllocatedSlotCount(const std::vector<std::byte>& headerBytes)
+{
+    std::size_t offset = 16;
+    std::vector<std::byte> allocatedSlotCountBytes(getIntTypeSize(IntType::INT16), std::byte{0});
+    copyNBytesSrcOffset(allocatedSlotCountBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
+    return std::get<std::int16_t>(decodeIntVariant(allocatedSlotCountBytes, IntType::INT16));
 }
 
 PageHeader PageHeader::decode(const std::vector<std::byte>& headerBytes)
 {
     if(headerBytes.size() != HEADER_BYTE_LENGTH) throw std::invalid_argument("[decode]: headerBytes not expected length");
 
-    std::size_t offset = 0;
-    std::vector<std::byte> logSequenceBytes(getIntTypeSize(IntType::INT64), std::byte{0});
-    copyNBytesSrcOffset(logSequenceBytes, headerBytes, offset, getIntTypeSize(IntType::INT64));
-
-    std::vector<std::byte> formatVersionBytes(getIntTypeSize(IntType::INT16), std::byte{0});
-    copyNBytesSrcOffset(formatVersionBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
-    
-    std::vector<std::byte> formatIDBytes(getIntTypeSize(IntType::INT16), std::byte{0});
-    copyNBytesSrcOffset(formatIDBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
-
-    std::vector<std::byte> tupleWidthBytes(getIntTypeSize(IntType::INT16), std::byte{0});
-    copyNBytesSrcOffset(tupleWidthBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
-
-    std::vector<std::byte> slotCapacityBytes(getIntTypeSize(IntType::INT16), std::byte{0});
-    copyNBytesSrcOffset(slotCapacityBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
-
-    std::vector<std::byte> allocatedSlotCountBytes(getIntTypeSize(IntType::INT16), std::byte{0});
-    copyNBytesSrcOffset(allocatedSlotCountBytes, headerBytes, offset, getIntTypeSize(IntType::INT16));
+    std::int64_t logSequenceNumber = getLogSequenceNumber(headerBytes);
+    std::int16_t formatVersion = getFormatVersion(headerBytes);
+    std::int16_t formatID = getFormatID(headerBytes);
+    std::int16_t tupleWidth = getTupleWidth(headerBytes);
+    std::int16_t slotCapacity = getSlotCapacity(headerBytes);
+    std::int16_t allocatedSlotCount = getAllocatedSlotCount(headerBytes);
 
     return PageHeader(
-        std::get<std::int64_t>(decodeIntVariant(logSequenceBytes, IntType::INT64)),
-        std::get<std::int16_t>(decodeIntVariant(formatVersionBytes, IntType::INT16)),
-        std::get<std::int16_t>(decodeIntVariant(formatIDBytes, IntType::INT16)),
-        std::get<std::int16_t>(decodeIntVariant(tupleWidthBytes, IntType::INT16)),
-        std::get<std::int16_t>(decodeIntVariant(slotCapacityBytes, IntType::INT16)),
-        std::get<std::int16_t>(decodeIntVariant(allocatedSlotCountBytes, IntType::INT16))
+        logSequenceNumber,
+        formatVersion,
+        formatID,
+        tupleWidth,
+        slotCapacity,
+        allocatedSlotCount
     );
 }
 

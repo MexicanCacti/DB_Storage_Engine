@@ -16,12 +16,6 @@ struct PageID {
     std::int64_t pageNumber;
 };
 
-struct RID
-{
-    PageID pageID;
-    std::int16_t tupleSlot;
-};
-
 class Page
 {
     private:

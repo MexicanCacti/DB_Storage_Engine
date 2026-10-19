@@ -32,6 +32,14 @@ class PageHeader
         // H + 2 * B(n) + n * R <= 4096, H = header size, R = Tuple Width
         static std::size_t calcSlotCapacity(std::int16_t tupleWidth);
 
+        // Static getter so that these values are retrievable without reconstructing a PageHeader every time
+        static std::int64_t getLogSequenceNumber(const std::vector<std::byte>& headerBytes);
+        static std::int16_t getFormatVersion(const std::vector<std::byte>& headerBytes);
+        static std::int16_t getFormatID(const std::vector<std::byte>& headerBytes);
+        static std::int16_t getTupleWidth(const std::vector<std::byte>& headerBytes);
+        static std::int16_t getSlotCapacity(const std::vector<std::byte>& headerBytes);
+        static std::int16_t getAllocatedSlotCount(const std::vector<std::byte>& headerBytes);
+
         static PageHeader decode(const std::vector<std::byte>& headerBytes);
         std::vector<std::byte> encode() const;
 };
