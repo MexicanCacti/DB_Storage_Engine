@@ -1,5 +1,7 @@
 #pragma once
 #include "data_page_header.hpp"
+#include "bitmap.hpp"
+
     /*
     Page Byte setup:
         {Header = 24 Bytes}
@@ -14,6 +16,7 @@
         i = ith slot to index
         R = tuple width
 
+        Then the slot will give the byte offset
     Note: Bitmap not actually saved explicitly
     */
 
@@ -31,11 +34,11 @@ class DataPage
         Page& page;
 
         void writePageHeader();
-        //std::size_t getAllocationBitmapOffset() const;
-        //std::size_t getDeletionBitmapOffset() const;
+        std::size_t getAllocationBitmapOffset() const {return 24;}
+        std::size_t getDeletionBitmapOffset() const;
 
-        //bool getBitmapBit(std::size_t bitmapOffset, std::size_t slotIndex) const;
-        //void setBitmapBit(std::size_t bitmapOffset, std::size_t slotIndex, bool value);
+        // 0 = allocation, 1 = deletion
+        Bitmap getBitmap(std::size_t type);
 
     public:
         DataPage(Page& page);
@@ -59,7 +62,8 @@ class DataPage
         bool isDeleted(std::size_t slotIndex) const;
         bool hasFreeSlot() const;
 
-        RID insertTuple(const std::vector<std::byte>& encodedTuple);
+        // B/c fixed size, slot doesn't need to contain byte offset
+        RID insertTuple(const std::vector<std::byte>& encodedTuple); 
         std::vector<std::byte> readTuple(std::size_t slotIndex) const;
         void deleteTuple(std::size_t slotIndex);
 };

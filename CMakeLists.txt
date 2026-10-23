@@ -11,6 +11,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         engine/basic_types/basic_types.cpp
         engine/basic_types/basic_types_encode_decode.cpp
+        engine/basic_types/bitmap.cpp
         engine/helpers/helpers.cpp
         engine/page/page.cpp
         engine/schema/schema.cpp
@@ -70,12 +71,14 @@ endif()
 set(public_headers
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types/basic_types.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types/basic_types_encode_decode.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine/basic_types/bitmap.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/helpers/helpers.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/page/page.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/schema/schema.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple/tuple.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/table/table_header.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/data_page/data_page_header.hpp
+    
 )
 
 set_target_properties(DB_STORAGE_LIBRARY PROPERTIES PUBLIC_HEADER "${public_headers}")
