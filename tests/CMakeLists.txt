@@ -49,6 +49,10 @@ add_executable( data_page_header_tests
   data_page_header_tests.cpp
 )
 
+add_executable( bitmap_tests
+  bitmap_tests.cpp
+)
+
 add_executable(all_tests
     basic_types_tests.cpp
     helper_tests.cpp
@@ -58,6 +62,7 @@ add_executable(all_tests
     tuple_tests.cpp
     table_header_tests.cpp
     data_page_header_tests.cpp
+    bitmap_tests.cpp
 )
 
 target_link_libraries( basic_types_tests
@@ -108,6 +113,12 @@ target_link_libraries( data_page_header_tests
         GTest::gtest_main
 )
 
+target_link_libraries( bitmap_tests
+    PRIVATE
+        DB_STORAGE_LIBRARY
+        GTest::gtest_main
+)
+
 target_link_libraries(all_tests
     PRIVATE
         DB_STORAGE_LIBRARY
@@ -123,10 +134,11 @@ gtest_discover_tests(schema_tests)
 gtest_discover_tests(tuple_tests)
 gtest_discover_tests(table_header_tests)
 gtest_discover_tests(data_page_header_tests)
+gtest_discover_tests(bitmap_tests)
 gtest_discover_tests(all_tests)
 
 set_target_properties(
-    basic_types_tests helper_tests basic_types_encode_decode_tests page_tests schema_tests tuple_tests table_header_tests data_page_header_tests all_tests
+    basic_types_tests helper_tests basic_types_encode_decode_tests page_tests schema_tests tuple_tests table_header_tests data_page_header_tests bitmap_tests all_tests
       PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )

@@ -95,12 +95,6 @@ std::int16_t PageHeader::getAllocatedSlotCount(const std::vector<std::byte>& hea
     return std::get<std::int16_t>(decodeIntVariant(allocatedSlotCountBytes, IntType::INT16));
 }
 
-std::vector<std::byte>& getHeaderBytes(const std::vector<std::byte>& pageBytes)
-{
-    if(pageBytes.size() != PAGE_BYTE_LENGTH) throw std::invalid_argument("[getHeaderBytes]: pageBytes not expected length");
-    return pageBytes
-}
-
 PageHeader PageHeader::decode(const std::vector<std::byte>& headerBytes)
 {
     if(headerBytes.size() != HEADER_BYTE_LENGTH) throw std::invalid_argument("[decode]: headerBytes not expected length");

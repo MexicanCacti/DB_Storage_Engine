@@ -70,16 +70,11 @@ std::size_t Bitmap::findFirstZeroBitIndex(std::size_t index) const
 {
     if(!isValidIndex(index)) throw std::invalid_argument("[findFirstZeroBitIndex]: supplied index not valid");
 
-    std::vector<std::byte> bitmapBytes(bitmapSlotCount, std::byte{0});
-    std::size_t bitmapSize = getStoredBitmapSize();
-    std::size_t offset = bitmapOffset;
-    copyNBytesSrcOffset(bitmapBytes, pageBytes, offset, bitmapSize);
-
     std::size_t indexesChecked = 0;
     while(indexesChecked < bitmapSlotCount)
     {
         if(readBit(index) == 0) return index;
-        index = (index + 1) % bitmapSize;
+        index = (index + 1) % bitmapSlotCount;
         ++indexesChecked;
     }
 
