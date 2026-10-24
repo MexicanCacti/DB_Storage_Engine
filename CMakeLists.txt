@@ -18,6 +18,7 @@ target_sources(${PROJECT_NAME}
         engine/tuple/tuple.cpp
         engine/table/table_header.cpp
         engine/data_page/data_page_header.cpp
+        engine/data_page/data_page.cpp
 )
 
 # Include all DB Directories
@@ -78,6 +79,7 @@ set(public_headers
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/tuple/tuple.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/table/table_header.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/data_page/data_page_header.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine/data_page/data_page.hpp
     
 )
 

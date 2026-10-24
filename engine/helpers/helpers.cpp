@@ -71,6 +71,15 @@ void copyBytes(std::vector<std::byte>& dest, const std::vector<std::byte>& src, 
     offset += src.size();
 }
 
+void copyBytes(std::vector<std::byte>& dest, const std::vector<std::byte>& src)
+{
+    if(&dest == &src) throw std::invalid_argument("[copyBytes]: dest & src are the same argument");
+
+    if(src.size() > dest.size()) throw std::out_of_range("[copyBytes]: src copy exceeds dest bounds");
+    std::copy(src.begin(), src.end(), dest.begin());
+}
+
+
 void copyNBytes(std::vector<std::byte>& dest, const std::vector<std::byte>& src, std::size_t& offset, std::size_t n)
 {
     if(&dest == &src) throw std::invalid_argument("[copyNBytes]: dest & src are the same argument");
@@ -81,6 +90,17 @@ void copyNBytes(std::vector<std::byte>& dest, const std::vector<std::byte>& src,
 
     std::copy(src.begin(), src.begin() + n, dest.begin() + offset);
     offset += n;
+}
+
+void copyNBytes(std::vector<std::byte>& dest, const std::vector<std::byte>& src, std::size_t n)
+{
+    if(&dest == &src) throw std::invalid_argument("[copyNBytes]: dest & src are the same argument");
+
+    if(n > src.size()) throw std::out_of_range("[copyNBytes]: n exceeds src size");
+
+    if(n > dest.size()) throw std::out_of_range("[copyNBytes]: src copy exceeds dest bounds");
+
+    std::copy(src.begin(), src.begin() + n, dest.begin());
 }
 
 
@@ -94,9 +114,21 @@ void copyBytesSrcOffset(std::vector<std::byte>& dest, const std::vector<std::byt
 
     if(copyByteCount > dest.size()) throw std::out_of_range("[copyBytesSrcOffset]: dest can't fit src");
 
-    std::copy(src.begin() + offset, src.end(), dest.begin());
+    std::copy(src.begin(), src.end(), dest.begin());
     offset += copyByteCount;
 }
+
+void copyBytesSrcOffset(std::vector<std::byte>& dest, const std::vector<std::byte>& src)
+{
+    if(&dest == &src) throw std::invalid_argument("[copyBytesSrcOffset]: dest & src are the same argument");
+
+    std::size_t copyByteCount = src.size();
+
+    if(copyByteCount > dest.size()) throw std::out_of_range("[copyBytesSrcOffset]: dest can't fit src");
+
+    std::copy(src.begin(), src.end(), dest.begin());
+}
+
 
 void copyNBytesSrcOffset(std::vector<std::byte>& dest, const std::vector<std::byte>& src, std::size_t& offset, std::size_t n)
 {

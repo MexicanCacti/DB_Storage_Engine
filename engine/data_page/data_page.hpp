@@ -1,6 +1,7 @@
 #pragma once
 #include "data_page_header.hpp"
 #include "bitmap.hpp"
+#include "page.hpp"
 
     /*
     Page Byte setup:
@@ -33,12 +34,15 @@ class DataPage
     private:
         Page& page;
 
-        void writePageHeader();
+        void writePageHeader(const std::vector<std::byte>& encodedPageHeader);
         std::size_t getAllocationBitmapOffset() const {return 24;}
         std::size_t getDeletionBitmapOffset() const;
 
         // 0 = allocation, 1 = deletion
-        Bitmap getBitmap(std::size_t type);
+        Bitmap getBitmap(std::size_t type) const;
+
+        std::size_t findInsertIndex() const;
+        bool isValidReadSlotIndex(std::size_t slotIndex) const;
 
     public:
         DataPage(Page& page);
@@ -52,7 +56,7 @@ class DataPage
         const PageID& getPageID() const {return page.getPageID();}
         const Page& getPageConst() const {return page;}
         Page& getPage() {return page;}
-        PageHeader getPageHeader() const {return PageHeader::decode(page.getPageBytesConst());}
+        PageHeader getPageHeader() const;
         std::int16_t getTupleWidth() const {return PageHeader::getTupleWidth(page.getPageBytesConst());}
         std::int16_t getSlotCapacity() const {return PageHeader::getSlotCapacity(page.getPageBytesConst());}
         std::int16_t getAllocatedSlotCount() const {return PageHeader::getAllocatedSlotCount(page.getPageBytesConst());}
@@ -65,5 +69,6 @@ class DataPage
         // B/c fixed size, slot doesn't need to contain byte offset
         RID insertTuple(const std::vector<std::byte>& encodedTuple); 
         std::vector<std::byte> readTuple(std::size_t slotIndex) const;
+        RID updateTuple(std::size_t slotIndex, const std::vector<std::byte>& encodedTuple);
         void deleteTuple(std::size_t slotIndex);
 };

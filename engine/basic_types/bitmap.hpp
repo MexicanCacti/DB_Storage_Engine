@@ -2,6 +2,8 @@
 #include "basic_types.hpp"
 #include "helpers.hpp"
 #include <cmath>
+
+// NOTE -> Needs encoder
 class Bitmap
 {
     private:
