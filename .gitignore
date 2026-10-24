@@ -2,5 +2,7 @@ build/
 lib/
 runner/Debug
 runner/Release
+google_tests/Debug
+google_tests/Release
 tests/Debug
 tests/Release

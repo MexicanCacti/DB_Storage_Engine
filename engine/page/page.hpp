@@ -30,5 +30,6 @@ class Page
         const std::int64_t& getTableID() const {return pageID.tableID;}
         const std::vector<std::byte>& getPageBytesConst() const {return pageBytes;}
         std::vector<std::byte>& getPageBytes() {return pageBytes;}
+        std::vector<std::byte> getPageBytesCopy() {return pageBytes;}
         const std::size_t& getPageSize() const {return PAGE_BYTE_LENGTH;}
 };
