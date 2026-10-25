@@ -27,6 +27,10 @@ const std::size_t MAX_TUPLE_WIDTH = 4056;
 const std::int16_t FORMAT_VERSION = 1;
 const std::int16_t FORMAT_ID = 0;
 
+const std::string CATALOG_FILE_EXTENSION = ".xD";
+const std::string TABLE_FILE_EXTENSION = ".x3";
+const std::string CATALOG_DELIM = "  ";
+
 // enum types guaranteed to be 1 byte in size
 enum class FieldType : int8_t 
 {

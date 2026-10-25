@@ -13,6 +13,7 @@ class Schema
         std::vector<Field> schemaField;
         std::size_t tupleWidth;
     public:
+        Schema() = default;
         Schema(const std::vector<Field>& fieldList);
         const std::vector<Field>& getFieldList() const {return schemaField;}
         const Field& getField(std::size_t index) const;

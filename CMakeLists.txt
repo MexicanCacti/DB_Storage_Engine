@@ -21,6 +21,7 @@ target_sources(${PROJECT_NAME}
         engine/data_page/data_page.cpp
         engine/file_manager/file_manager.cpp
         engine/buffer_pool/buffer_pool.cpp
+        engine/database/database.cpp
 )
 
 # Include all DB Directories
@@ -35,6 +36,7 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/data_page
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/file_manager
         ${CMAKE_CURRENT_SOURCE_DIR}/engine/buffer_pool
+        ${CMAKE_CURRENT_SOURCE_DIR}/engine/database
 
     # Include all DB directories that contain the .hpp files
     PUBLIC
@@ -48,6 +50,7 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/data_page>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/file_manager>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/buffer_pool>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/engine/database>
         # where external projects will look for the library's public headers
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -89,6 +92,7 @@ set(public_headers
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/data_page/data_page.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/file_manager/file_manager.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine/buffer_pool/buffer_pool.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine/database/database.hpp
     
 )
 
