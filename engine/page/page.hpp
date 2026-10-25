@@ -14,6 +14,24 @@
 struct PageID {
     std::int64_t tableID;
     std::int64_t pageNumber;
+
+    // Operator needed for map comparisons
+    bool operator==( const PageID& p2) const
+    {
+        return tableID == p2.tableID && pageNumber == p2.pageNumber;
+    }
+
+    // Needed for unordered_maps using PageID!
+    // Probably a bad hash but that could be fixed later!
+    struct PageIDHasher {
+        std::size_t operator()(const PageID& pageID) const
+        {
+            std::size_t tableIDHash = std::hash<std::int64_t>{}(pageID.tableID);
+            std::size_t pageNumberHash = std::hash<std::int64_t>{}(pageID.pageNumber);
+            
+            return (tableIDHash << 1) + pageNumberHash + (tableIDHash >> 1);
+        }
+    };
 };
 
 class Page

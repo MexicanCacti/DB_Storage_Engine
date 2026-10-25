@@ -19,14 +19,17 @@ class BufferPool
 {
     private:
         std::vector<BufferFrame> framePool;
-        std::unordered_map<PageID, std::size_t> frameLookup;
+        std::unordered_map<PageID, std::size_t, PageID::PageIDHasher> frameLookup;
         std::list<std::size_t> LRUList;
+        std::unordered_map<std::int64_t, std::string>& tableIDToFile;
         FileManager& fileManager;
         std::size_t findUnusedFrame() const;
         std::size_t findVictimFrame() const;
         void evictFrame(std::size_t frameIndex);
+        void placeFrame(std::size_t frameIndex, const PageID& pageID);
+        void updateLRUFrame(std::size_t frameIndex);
     public:
-        BufferPool(std::int8_t frameCount);
+        BufferPool(FileManager& fileManager, std::unordered_map<std::int64_t, std::string>& tableIDToFile, std::int8_t frameCount);
 
         //  Get a page, will make room in frame pool if needed (gets victim) then increments pinCount
         Page& fetchPage(const PageID& pageID);
