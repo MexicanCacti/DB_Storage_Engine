@@ -147,7 +147,6 @@ gtest_discover_tests(table_header_tests)
 gtest_discover_tests(data_page_header_tests)
 gtest_discover_tests(bitmap_tests)
 gtest_discover_tests(data_page_tests)
-
 gtest_discover_tests(all_tests)
 
 set_target_properties(

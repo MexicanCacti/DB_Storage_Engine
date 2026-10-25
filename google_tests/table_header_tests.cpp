@@ -14,7 +14,7 @@
 // Constructor Tests
 // ---------------------------------------------------------
 
-TEST(TableHeaderTest, ValidConstructor)
+TEST(TableHeaderTest, ConstructorValidTableName)
 {
     Schema schema({
         {"id", FieldType::INT64},
@@ -24,7 +24,7 @@ TEST(TableHeaderTest, ValidConstructor)
     EXPECT_NO_THROW(TableHeader("users", 1, schema));
 }
 
-TEST(TableHeaderTest, EmptyTableName)
+TEST(TableHeaderTest, ConstructorEmptyTableName)
 {
     Schema schema({
         {"id", FieldType::INT64}
@@ -33,7 +33,7 @@ TEST(TableHeaderTest, EmptyTableName)
     EXPECT_NO_THROW(TableHeader("", 1, schema));
 }
 
-TEST(TableHeaderTest, Exactly32ByteTableName)
+TEST(TableHeaderTest, ConstructorExactly32ByteTableName)
 {
     Schema schema({
         {"id", FieldType::INT64}
@@ -44,7 +44,7 @@ TEST(TableHeaderTest, Exactly32ByteTableName)
     EXPECT_NO_THROW(TableHeader(tableName, 1, schema));
 }
 
-TEST(TableHeaderTest, TableNameExceeds32Bytes)
+TEST(TableHeaderTest, ConstructorRejectsLongTableName)
 {
     Schema schema({
         {"id", FieldType::INT64}
@@ -58,7 +58,7 @@ TEST(TableHeaderTest, TableNameExceeds32Bytes)
     );
 }
 
-TEST(TableHeaderTest, TableNameContainsNullByte)
+TEST(TableHeaderTest, ConstructorRejectsEmbeddedNull)
 {
     Schema schema({
         {"id", FieldType::INT64}
@@ -72,13 +72,15 @@ TEST(TableHeaderTest, TableNameContainsNullByte)
     );
 }
 
-TEST(TableHeaderTest, InvalidUTF8TableName)
+TEST(TableHeaderTest, ConstructorRejectsInvalidUTF8)
 {
     Schema schema({
         {"id", FieldType::INT64}
     });
 
-    std::string tableName(1, static_cast<char>(0xFF));
+    std::string tableName(
+        1, static_cast<char>(0xFF)
+    );
 
     EXPECT_THROW(
         TableHeader(tableName, 1, schema),
@@ -110,18 +112,140 @@ TEST(TableHeaderTest, GetSchema)
 
     TableHeader header("users", 1, schema);
 
-    const auto& expectedFields = schema.getFieldList();
-    const auto& actualFields = header.getSchema().getFieldList();
+    const auto& expected = schema.getFieldList();
+    const auto& actual = header.getSchema().getFieldList();
 
-    ASSERT_EQ(expectedFields.size(), actualFields.size());
+    ASSERT_EQ(expected.size(), actual.size());
 
-    for (std::size_t i = 0; i < expectedFields.size(); ++i)
+    for (std::size_t i = 0; i < expected.size(); ++i)
     {
-        EXPECT_EQ(expectedFields[i].name,
-                  actualFields[i].name);
+        EXPECT_EQ(
+            expected[i].name,
+            actual[i].name
+        );
 
-        EXPECT_EQ(expectedFields[i].type,
-                  actualFields[i].type);
+        EXPECT_EQ(
+            expected[i].type,
+            actual[i].type
+        );
+    }
+}
+
+TEST(TableHeaderTest, GetNextPageNumberInitiallyOne)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    EXPECT_EQ(header.getNextPageNumber(), 1);
+}
+
+// ---------------------------------------------------------
+// Page Number Allocation Tests
+// ---------------------------------------------------------
+
+TEST(TableHeaderTest, AllocateFirstPageNumber)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    std::int64_t pageNumber =
+        header.allocatedNextPageNumber();
+
+    EXPECT_EQ(pageNumber, 1);
+    EXPECT_EQ(header.getNextPageNumber(), 2);
+}
+
+TEST(TableHeaderTest, AllocateSequentialPageNumbers)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    EXPECT_EQ(header.allocatedNextPageNumber(), 1);
+    EXPECT_EQ(header.allocatedNextPageNumber(), 2);
+    EXPECT_EQ(header.allocatedNextPageNumber(), 3);
+    EXPECT_EQ(header.allocatedNextPageNumber(), 4);
+
+    EXPECT_EQ(header.getNextPageNumber(), 5);
+}
+
+TEST(TableHeaderTest, AllocateManyPageNumbers)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    for (std::int64_t i = 1; i <= 1000; ++i)
+    {
+        EXPECT_EQ(
+            header.allocatedNextPageNumber(),
+            i
+        );
+    }
+
+    EXPECT_EQ(header.getNextPageNumber(), 1001);
+}
+
+TEST(TableHeaderTest, GetNextPageNumberDoesNotAllocate)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    EXPECT_EQ(header.getNextPageNumber(), 1);
+    EXPECT_EQ(header.getNextPageNumber(), 1);
+    EXPECT_EQ(header.getNextPageNumber(), 1);
+}
+
+TEST(TableHeaderTest, AllocationDoesNotModifyTableID)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    header.allocatedNextPageNumber();
+    header.allocatedNextPageNumber();
+
+    EXPECT_EQ(header.getTableID(), 42);
+}
+
+TEST(TableHeaderTest, AllocationDoesNotModifySchema)
+{
+    Schema schema({
+        {"id", FieldType::INT64},
+        {"name", FieldType::STRING32}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    header.allocatedNextPageNumber();
+
+    const auto& expected = schema.getFieldList();
+    const auto& actual = header.getSchema().getFieldList();
+
+    ASSERT_EQ(expected.size(), actual.size());
+
+    for (std::size_t i = 0; i < expected.size(); ++i)
+    {
+        EXPECT_EQ(expected[i].name,
+                  actual[i].name);
+
+        EXPECT_EQ(expected[i].type,
+                  actual[i].type);
     }
 }
 
@@ -129,26 +253,26 @@ TEST(TableHeaderTest, GetSchema)
 // Encoding Tests
 // ---------------------------------------------------------
 
-TEST(TableHeaderTest, EncodeProducesPageSize)
+TEST(TableHeaderTest, EncodeProducesFullPage)
 {
     Schema schema({
         {"id", FieldType::INT64}
     });
 
-    TableHeader header("users", 1, schema);
+    TableHeader header("users", 42, schema);
 
     std::vector<std::byte> bytes = header.encode();
 
     EXPECT_EQ(bytes.size(), PAGE_BYTE_LENGTH);
 }
 
-TEST(TableHeaderTest, EncodeTableName)
+TEST(TableHeaderTest, EncodeTableNameAtCorrectOffset)
 {
     Schema schema({
         {"id", FieldType::INT64}
     });
 
-    TableHeader header("users", 1, schema);
+    TableHeader header("users", 42, schema);
 
     std::vector<std::byte> bytes = header.encode();
 
@@ -188,7 +312,52 @@ TEST(TableHeaderTest, EncodeTableIDLittleEndian)
     EXPECT_EQ(bytes[39], std::byte{0x01});
 }
 
-TEST(TableHeaderTest, EncodeDeterministic)
+TEST(TableHeaderTest, EncodeNextPageNumberInitiallyOne)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    std::vector<std::byte> bytes = header.encode();
+
+    // nextPageNumber occupies bytes [40, 47].
+    EXPECT_EQ(bytes[40], std::byte{0x01});
+
+    for (std::size_t i = 41; i < 48; ++i)
+    {
+        EXPECT_EQ(bytes[i], std::byte{0});
+    }
+}
+
+TEST(TableHeaderTest, EncodeNextPageNumberLittleEndian)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    // Allocate 258 pages.
+    for (std::int64_t i = 0; i < 258; ++i)
+    {
+        header.allocatedNextPageNumber();
+    }
+
+    // nextPageNumber = 259 = 0x0103.
+    std::vector<std::byte> bytes = header.encode();
+
+    EXPECT_EQ(bytes[40], std::byte{0x03});
+    EXPECT_EQ(bytes[41], std::byte{0x01});
+
+    for (std::size_t i = 42; i < 48; ++i)
+    {
+        EXPECT_EQ(bytes[i], std::byte{0});
+    }
+}
+
+TEST(TableHeaderTest, EncodeIsDeterministic)
 {
     Schema schema({
         {"id", FieldType::INT64},
@@ -197,17 +366,39 @@ TEST(TableHeaderTest, EncodeDeterministic)
 
     TableHeader header("users", 42, schema);
 
+    header.allocatedNextPageNumber();
+
     std::vector<std::byte> first = header.encode();
     std::vector<std::byte> second = header.encode();
 
     EXPECT_EQ(first, second);
 }
 
+TEST(TableHeaderTest, AllocationChangesEncodedPageNumber)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    std::vector<std::byte> before = header.encode();
+
+    header.allocatedNextPageNumber();
+
+    std::vector<std::byte> after = header.encode();
+
+    EXPECT_NE(before, after);
+
+    EXPECT_EQ(before[40], std::byte{0x01});
+    EXPECT_EQ(after[40], std::byte{0x02});
+}
+
 // ---------------------------------------------------------
-// Decoding Tests
+// Decode Validation Tests
 // ---------------------------------------------------------
 
-TEST(TableHeaderTest, DecodeEmptyBuffer)
+TEST(TableHeaderTest, DecodeRejectsEmptyBuffer)
 {
     std::vector<std::byte> bytes;
 
@@ -217,7 +408,7 @@ TEST(TableHeaderTest, DecodeEmptyBuffer)
     );
 }
 
-TEST(TableHeaderTest, DecodeBufferTooSmall)
+TEST(TableHeaderTest, DecodeRejectsSmallBuffer)
 {
     std::vector<std::byte> bytes(
         PAGE_BYTE_LENGTH - 1,
@@ -230,12 +421,57 @@ TEST(TableHeaderTest, DecodeBufferTooSmall)
     );
 }
 
-TEST(TableHeaderTest, DecodeBufferTooLarge)
+TEST(TableHeaderTest, DecodeRejectsLargeBuffer)
 {
     std::vector<std::byte> bytes(
         PAGE_BYTE_LENGTH + 1,
         std::byte{0}
     );
+
+    EXPECT_THROW(
+        TableHeader::decode(bytes),
+        std::invalid_argument
+    );
+}
+
+
+TEST(TableHeaderTest, DecodeRejectsZeroNextPageNumber)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    std::vector<std::byte> bytes = header.encode();
+
+    // Set nextPageNumber to zero.
+    for (std::size_t i = 40; i < 48; ++i)
+    {
+        bytes[i] = std::byte{0};
+    }
+
+    EXPECT_THROW(
+        TableHeader::decode(bytes),
+        std::invalid_argument
+    );
+}
+
+TEST(TableHeaderTest, DecodeRejectsNegativeNextPageNumber)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader header("users", 42, schema);
+
+    std::vector<std::byte> bytes = header.encode();
+
+    // -1 encoded as signed INT64.
+    for (std::size_t i = 40; i < 48; ++i)
+    {
+        bytes[i] = std::byte{0xFF};
+    }
 
     EXPECT_THROW(
         TableHeader::decode(bytes),
@@ -262,59 +498,90 @@ TEST(TableHeaderTest, EncodeDecodeRoundTrip)
     TableHeader decoded = TableHeader::decode(bytes);
 
     EXPECT_EQ(decoded.getTableID(), 42);
+    EXPECT_EQ(decoded.getNextPageNumber(), 1);
 
-    const auto& expectedFields = schema.getFieldList();
-    const auto& actualFields = decoded.getSchema().getFieldList();
+    const auto& expected = schema.getFieldList();
+    const auto& actual = decoded.getSchema().getFieldList();
 
-    ASSERT_EQ(expectedFields.size(), actualFields.size());
+    ASSERT_EQ(expected.size(), actual.size());
 
-    for (std::size_t i = 0; i < expectedFields.size(); ++i)
+    for (std::size_t i = 0; i < expected.size(); ++i)
     {
-        EXPECT_EQ(expectedFields[i].name,
-                  actualFields[i].name);
+        EXPECT_EQ(expected[i].name,
+                  actual[i].name);
 
-        EXPECT_EQ(expectedFields[i].type,
-                  actualFields[i].type);
+        EXPECT_EQ(expected[i].type,
+                  actual[i].type);
     }
 }
 
-TEST(TableHeaderTest, RoundTripNegativeTableID)
+TEST(TableHeaderTest, RoundTripPreservesAllocatedPageNumber)
 {
     Schema schema({
         {"id", FieldType::INT64}
     });
 
-    TableHeader original("users", -12345, schema);
+    TableHeader original("users", 42, schema);
+
+    original.allocatedNextPageNumber();
+    original.allocatedNextPageNumber();
+    original.allocatedNextPageNumber();
+
+    EXPECT_EQ(original.getNextPageNumber(), 4);
 
     std::vector<std::byte> bytes = original.encode();
 
     TableHeader decoded = TableHeader::decode(bytes);
 
-    EXPECT_EQ(decoded.getTableID(), -12345);
+    EXPECT_EQ(decoded.getNextPageNumber(), 4);
 }
 
-TEST(TableHeaderTest, RoundTripZeroTableID)
+TEST(TableHeaderTest, AllocationContinuesAfterDecode)
 {
     Schema schema({
         {"id", FieldType::INT64}
     });
 
-    TableHeader original("users", 0, schema);
+    TableHeader original("users", 42, schema);
+
+    original.allocatedNextPageNumber();
+    original.allocatedNextPageNumber();
+    original.allocatedNextPageNumber();
 
     std::vector<std::byte> bytes = original.encode();
 
     TableHeader decoded = TableHeader::decode(bytes);
 
-    EXPECT_EQ(decoded.getTableID(), 0);
+    EXPECT_EQ(decoded.allocatedNextPageNumber(), 4);
+    EXPECT_EQ(decoded.allocatedNextPageNumber(), 5);
+    EXPECT_EQ(decoded.allocatedNextPageNumber(), 6);
+
+    EXPECT_EQ(decoded.getNextPageNumber(), 7);
 }
 
-TEST(TableHeaderTest, RoundTripMaxInt64)
+TEST(TableHeaderTest, RoundTripPreservesNegativeTableID)
 {
     Schema schema({
         {"id", FieldType::INT64}
     });
 
-    std::int64_t maxID = std::numeric_limits<std::int64_t>::max();
+    TableHeader original("users", -42, schema);
+
+    std::vector<std::byte> bytes = original.encode();
+
+    TableHeader decoded = TableHeader::decode(bytes);
+
+    EXPECT_EQ(decoded.getTableID(), -42);
+}
+
+TEST(TableHeaderTest, RoundTripPreservesMaxTableID)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    std::int64_t maxID =
+        std::numeric_limits<std::int64_t>::max();
 
     TableHeader original("users", maxID, schema);
 
@@ -325,24 +592,7 @@ TEST(TableHeaderTest, RoundTripMaxInt64)
     EXPECT_EQ(decoded.getTableID(), maxID);
 }
 
-TEST(TableHeaderTest, RoundTripMinInt64)
-{
-    Schema schema({
-        {"id", FieldType::INT64}
-    });
-
-    std::int64_t minID = std::numeric_limits<std::int64_t>::min();
-
-    TableHeader original("users", minID, schema);
-
-    std::vector<std::byte> bytes = original.encode();
-
-    TableHeader decoded = TableHeader::decode(bytes);
-
-    EXPECT_EQ(decoded.getTableID(), minID);
-}
-
-TEST(TableHeaderTest, RoundTripExactly32ByteName)
+TEST(TableHeaderTest, RoundTripPreserves32ByteName)
 {
     Schema schema({
         {"id", FieldType::INT64}
@@ -356,38 +606,7 @@ TEST(TableHeaderTest, RoundTripExactly32ByteName)
 
     TableHeader decoded = TableHeader::decode(bytes);
 
-    std::vector<std::byte> reencoded = decoded.encode();
-
-    EXPECT_EQ(bytes, reencoded);
-}
-
-TEST(TableHeaderTest, RoundTripPreservesSchemaFieldOrder)
-{
-    Schema schema({
-        {"first", FieldType::STRING32},
-        {"second", FieldType::INT64},
-        {"third", FieldType::STRING32}
-    });
-
-    TableHeader original("records", 7, schema);
-
-    std::vector<std::byte> bytes = original.encode();
-
-    TableHeader decoded = TableHeader::decode(bytes);
-
-    const auto& expectedFields = schema.getFieldList();
-    const auto& actualFields = decoded.getSchema().getFieldList();
-
-    ASSERT_EQ(expectedFields.size(), actualFields.size());
-
-    for (std::size_t i = 0; i < expectedFields.size(); ++i)
-    {
-        EXPECT_EQ(expectedFields[i].name,
-                  actualFields[i].name);
-
-        EXPECT_EQ(expectedFields[i].type,
-                  actualFields[i].type);
-    }
+    EXPECT_EQ(decoded.encode(), bytes);
 }
 
 TEST(TableHeaderTest, ReencodingDecodedHeaderProducesSameBytes)
@@ -399,6 +618,11 @@ TEST(TableHeaderTest, ReencodingDecodedHeaderProducesSameBytes)
 
     TableHeader original("users", 42, schema);
 
+    for (int i = 0; i < 100; ++i)
+    {
+        original.allocatedNextPageNumber();
+    }
+
     std::vector<std::byte> originalBytes = original.encode();
 
     TableHeader decoded = TableHeader::decode(originalBytes);
@@ -406,4 +630,22 @@ TEST(TableHeaderTest, ReencodingDecodedHeaderProducesSameBytes)
     std::vector<std::byte> decodedBytes = decoded.encode();
 
     EXPECT_EQ(originalBytes, decodedBytes);
+}
+
+TEST(TableHeaderTest, IndependentHeadersHaveIndependentCounters)
+{
+    Schema schema({
+        {"id", FieldType::INT64}
+    });
+
+    TableHeader first("users", 1, schema);
+    TableHeader second("orders", 2, schema);
+
+    first.allocatedNextPageNumber();
+    first.allocatedNextPageNumber();
+
+    second.allocatedNextPageNumber();
+
+    EXPECT_EQ(first.getNextPageNumber(), 3);
+    EXPECT_EQ(second.getNextPageNumber(), 2);
 }

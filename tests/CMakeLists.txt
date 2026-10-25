@@ -26,7 +26,7 @@ target_link_libraries(all_user_tests
 )
 
 set_target_properties(
-    4_6_tests all_tests
+    4_6_tests all_user_tests
       PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )

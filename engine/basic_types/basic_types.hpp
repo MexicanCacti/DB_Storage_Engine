@@ -19,6 +19,8 @@ const std::size_t HEADER_BYTE_LENGTH = 24;
     24 + 16 + R <= 4096
     R <= 4056
     So therefore the max_tuple_width is 4056, any larger no room for a tuple slot
+
+    NOTE: Added PAGE_NUMBER, so 4056
 */
 const std::size_t MAX_TUPLE_WIDTH = 4056;
 
