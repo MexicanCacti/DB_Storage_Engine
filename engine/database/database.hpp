@@ -70,12 +70,12 @@ class Database
             Page will Init w/ DataPage: {DataPage(Page& page); DataPage.Initialize(tupleWidth)}
         */
         void createTable(const std::string& tableName, const Schema& schema);
-
         RID insertTuple(const std::string& tableName, Tuple tuple); // For now only 1 page (so always use page # 1)
         Tuple readTuple(const std::string& tableName, RID recordID);
         RID updateTuple(const std::string& tableName, RID recordID, Tuple updatedTuple);
         void deleteTuple(const std::string& tableName, RID recordID);
         std::vector<std::pair<Tuple, RID>> scan(const std::string& tableName);
         void flushAllPages();
+        TableHeader queryTableInfo(std::string& tableName) const;
         ~Database();
 };

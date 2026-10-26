@@ -168,23 +168,25 @@ void Database::createTable(const std::string& tableName, const Schema& schema)
 }
 
 // Grabs a page & pins & caches
-// Whoever uses this better unpin!
+// On fail, returns a page that has PageID vals = -1
 Page& Database::openTable(const std::string& tableName)
 {
-    if(tableNameToID.find(tableName) == tableNameToID.end()) throw std::invalid_argument("[openTable]: Table doesn't exist");
+    if(tableNameToID.find(tableName) == tableNameToID.end()) return Page();
     std::int64_t tableID = tableNameToID.at(tableName);
     PageID pageID{tableID, 1};
     Page& page = bufferPool->fetchPage(pageID);
-    try
-    {
+
+    try{
         DataPage dataPage(page);
         dataPage.Open(tableIDToSchema.at(tableID).getTupleWidth());
         return page;
+
     }
-    catch(std::exception& e)
+    catch(...)
     {
-        std::cerr << "[openTable]: " << e.what() << "\n";
+        bufferPool->unpinPage(pageID, false);
     }
+
 
     return page;
 }
@@ -192,99 +194,146 @@ Page& Database::openTable(const std::string& tableName)
 // Returns RID w/ tuple slot = -1 on table full
 RID Database::insertTuple(const std::string& tableName, Tuple tuple)
 {
-    try
+
+    Page& page = openTable(tableName);
+    if(page.getPageID().tableID == -1) // Open table failed!
     {
-        Page& page = openTable(tableName);
-        DataPage dataPage(page);
+        return RID{{-1, -1}, -1};
+    }
+    DataPage dataPage(page);
+    try{
         RID rid = dataPage.insertTuple(tuple.encode());
         bufferPool->unpinPage(dataPage.getPageID(), true);
         return rid;
     }
-    catch(std::exception& e)
+    catch(...)
     {
-        std::cerr << "[insertTuple]: " << e.what() << "\n";
+        bufferPool->unpinPage(dataPage.getPageID(), false);
+        return RID{{-1, -1}, -1};
     }
+
     return RID{{-1, -1}, -1};
 }
 
+// Return empty tuple on fail
 Tuple Database::readTuple(const std::string& tableName, RID recordID)
 {
-    try
+    std::int64_t tableID = tableNameToID.at(tableName);
+    if(recordID.pageID.tableID != tableID) throw std::invalid_argument("[readTuple]: RID doesn't belong to supplied table");
+    if(recordID.pageID.pageNumber == 0) throw std::invalid_argument("[readTupe]: Page 0 supplied in RID is reserved for metadata");
+    Page& page = openTable(tableName);
+    if(page.getPageID().tableID == -1) // Open table failed!
     {
-        Page& page = openTable(tableName);
-        DataPage dataPage(page);
+        return Tuple({});
+    }
+    DataPage dataPage(page);
+    try{
         std::vector<std::byte> tupleBytes = dataPage.readTuple(recordID.tupleSlot);
         bufferPool->unpinPage(dataPage.getPageID(), false);
         return Tuple(Tuple::decode(tupleBytes, tableIDToSchema.at(recordID.pageID.tableID).getFieldList()));
     }
-    catch(std::exception& e)
+    catch(...)
     {
-        std::cerr << "[insertTuple]: " << e.what() << "\n";
+        bufferPool->unpinPage(dataPage.getPageID(), false);
+        return Tuple({});
     }
     return Tuple({});
 }
 
+// returns tupleslot w/ -1 on fail
 RID Database::updateTuple(const std::string& tableName, RID recordID, Tuple updatedTuple)
 {
-    try
+    std::int64_t tableID = tableNameToID.at(tableName);
+    if(recordID.pageID.tableID != tableID) throw std::invalid_argument("[updateTuple]: RID doesn't belong to supplied table");
+    if(recordID.pageID.pageNumber == 0) throw std::invalid_argument("[updateTuple]: Page 0 supplied in RID is reserved for metadata");
+
+    Page& page = openTable(tableName);
+    if(page.getPageID().tableID == -1) // Open table failed!
     {
-        Page& page = openTable(tableName);
-        DataPage dataPage(page);
+        RID{{-1, -1}, -1};
+    }
+    DataPage dataPage(page);
+    try{
         RID rid = dataPage.updateTuple(recordID.tupleSlot, updatedTuple.encode());
         bufferPool->unpinPage(dataPage.getPageID(), true);
         return rid;
     }
-    catch(std::exception& e)
+    catch(...)
     {
-        std::cerr << "[updateTuple]: " << e.what() << "\n";
+        bufferPool->unpinPage(dataPage.getPageID(), false);
+        return RID{{-1, -1}, -1};
     }
+    
     return RID{{-1, -1}, -1};
 }
 
 void Database::deleteTuple(const std::string& tableName, RID recordID)
 {
-    try
-    {
-        Page& page = openTable(tableName);
-        DataPage dataPage(page);
+    std::int64_t tableID = tableNameToID.at(tableName);
+    if(recordID.pageID.tableID != tableID) throw std::invalid_argument("[deleteTuple]: RID doesn't belong to supplied table");
+    if(recordID.pageID.pageNumber == 0) throw std::invalid_argument("[deleteTuple]: Page 0 supplied in RID is reserved for metadata");
+    Page& page = openTable(tableName);
+
+    DataPage dataPage(page);
+    try{
         dataPage.deleteTuple(recordID.tupleSlot);
         bufferPool->unpinPage(dataPage.getPageID(), true);
     }
-    catch(std::exception& e)
+    catch(...)
     {
-        std::cerr << "[deleteTuple]: " << e.what() << "\n";
+        bufferPool->unpinPage(dataPage.getPageID(), false);
+        throw;
     }
+
 }
 
 std::vector<std::pair<Tuple, RID>> Database::scan(const std::string& tableName)
 {
     std::vector<std::pair<Tuple, RID>> tupleList;
-    try
-    {
+
         Page& page = openTable(tableName);
+    
         DataPage dataPage(page);
-        std::size_t slotCap = dataPage.getSlotCapacity();
-        for(std::size_t index = 0 ; index < slotCap; ++index)
-        {
-            try
+        try{
+            std::size_t slotCap = dataPage.getSlotCapacity();
+            for(std::size_t index = 0 ; index < slotCap; ++index)
             {
-                std::vector<std::byte> tupleBytes = dataPage.readTuple(index);
-                RID tupleRID = {dataPage.getPageID(), index};
-                tupleList.push_back( {Tuple(Tuple::decode(tupleBytes, tableIDToSchema.at(tableNameToID.at(tableName)).getFieldList())), tupleRID} );
-            }
-            catch(std::exception& e)
-            {
+                if(dataPage.isAllocated(index) && !dataPage.isDeleted(index))
+                {
+                    std::vector<std::byte> tupleBytes = dataPage.readTuple(index);
+                    RID tupleRID = {dataPage.getPageID(), index};
+                    tupleList.push_back( {Tuple(Tuple::decode(tupleBytes, tableIDToSchema.at(tableNameToID.at(tableName)).getFieldList())), tupleRID} );
+                }
 
             }
+            bufferPool->unpinPage(dataPage.getPageID(), false);
+            return tupleList;
         }
-        bufferPool->unpinPage(dataPage.getPageID(), false);
-    }
-    catch(std::exception& e)
-    {
-        std::cerr << "[scan]: " << e.what() << "\n";
-    }
-    return tupleList;
+        catch(...)
+        {
+            bufferPool->unpinPage(dataPage.getPageID(), false);
+            return tupleList;
+        }
+        return tupleList;
+}
 
+TableHeader Database::queryTableInfo(std::string& tableName) const
+{
+    TableHeader tableHeaderInfo;
+
+    PageID tableHeaderPageID = {tableNameToID.at(tableName), 0};
+    Page& page = bufferPool->fetchPage(tableHeaderPageID);
+    try{
+        tableHeaderInfo = TableHeader::decode(page.getPageBytesConst());
+        bufferPool->unpinPage(page.getPageID(), false);
+    }
+    catch(...)
+    {
+        bufferPool->unpinPage(page.getPageID(), false);
+        throw;
+    }
+
+    return tableHeaderInfo;
 }
 
 void Database::flushAllPages()
@@ -294,5 +343,12 @@ void Database::flushAllPages()
 
 Database::~Database()
 {
-    flushAllPages();
+    try{
+        flushAllPages();
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "[Database Destructor]: " << e.what() << "\n";
+    }
 }
+
