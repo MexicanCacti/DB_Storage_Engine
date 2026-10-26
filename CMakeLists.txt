@@ -58,6 +58,7 @@ target_include_directories(${PROJECT_NAME}
 add_subdirectory(runner)
 add_subdirectory(google_tests)
 add_subdirectory(tests)
+add_subdirectory(config_info_helper)
 
 if(DEFINED CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     message(
