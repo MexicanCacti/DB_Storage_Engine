@@ -7,3 +7,6 @@ google_tests/Release
 tests/Debug
 tests/Release
 storage
+build-clean
+runner
+config_info_helper/

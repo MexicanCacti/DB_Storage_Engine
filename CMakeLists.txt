@@ -55,10 +55,8 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-add_subdirectory(runner)
 add_subdirectory(google_tests)
 add_subdirectory(tests)
-add_subdirectory(config_info_helper)
 
 if(DEFINED CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     message(
@@ -145,3 +143,12 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
     DESTINATION cmake
 )
+
+message(STATUS "Operating System: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "System Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "C++ Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "Compiler Path: ${CMAKE_CXX_COMPILER}")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "CMake Version: ${CMAKE_VERSION}")
+message(STATUS "Build Generator: ${CMAKE_GENERATOR}")
