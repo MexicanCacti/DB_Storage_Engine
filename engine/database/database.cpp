@@ -149,7 +149,7 @@ void Database::createTable(const std::string& tableName, const Schema& schema)
         DataPage dataPage(firstPage);
         dataPage.Initialize(schema.getTupleWidth());
 
-        fileManager.createFile(tableName);
+        fileManager.createFile(fileName);
 
         fileManager.writePage(fileName, 0, tablePage.getPageBytesConst());
         fileManager.writePage(fileName, 1, firstPage.getPageBytesConst());
@@ -174,9 +174,9 @@ Page& Database::openTable(const std::string& tableName)
     if(tableNameToID.find(tableName) == tableNameToID.end()) throw std::invalid_argument("[openTable]: Table doesn't exist");
     std::int64_t tableID = tableNameToID.at(tableName);
     PageID pageID{tableID, 1};
+    Page& page = bufferPool->fetchPage(pageID);
     try
     {
-        Page& page = bufferPool->fetchPage(pageID);
         DataPage dataPage(page);
         dataPage.Open(tableIDToSchema.at(tableID).getTupleWidth());
         return page;
@@ -185,6 +185,8 @@ Page& Database::openTable(const std::string& tableName)
     {
         std::cerr << "[openTable]: " << e.what() << "\n";
     }
+
+    return page;
 }
 
 // Returns RID w/ tuple slot = -1 on table full
@@ -254,9 +256,9 @@ void Database::deleteTuple(const std::string& tableName, RID recordID)
     }
 }
 
-std::vector<Tuple> Database::scan(const std::string& tableName)
+std::vector<std::pair<Tuple, RID>> Database::scan(const std::string& tableName)
 {
-    std::vector<Tuple> tupleList;
+    std::vector<std::pair<Tuple, RID>> tupleList;
     try
     {
         Page& page = openTable(tableName);
@@ -267,19 +269,20 @@ std::vector<Tuple> Database::scan(const std::string& tableName)
             try
             {
                 std::vector<std::byte> tupleBytes = dataPage.readTuple(index);
-                tupleList.push_back(Tuple(Tuple::decode(tupleBytes, tableIDToSchema.at(tableNameToID.at(tableName)).getFieldList())));
+                RID tupleRID = {dataPage.getPageID(), index};
+                tupleList.push_back( {Tuple(Tuple::decode(tupleBytes, tableIDToSchema.at(tableNameToID.at(tableName)).getFieldList())), tupleRID} );
             }
             catch(std::exception& e)
             {
 
             }
         }
+        bufferPool->unpinPage(dataPage.getPageID(), false);
     }
     catch(std::exception& e)
     {
         std::cerr << "[scan]: " << e.what() << "\n";
     }
-
     return tupleList;
 
 }

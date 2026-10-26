@@ -11,11 +11,22 @@ add_executable( 4_6_tests
   4_6_tests.cpp
 )
 
+add_executable( storage_demo
+  storage_demo.cpp
+)
+
+
 add_executable(all_user_tests
     4_6_tests.cpp
+    storage_demo
 )
 
 target_link_libraries(4_6_tests
+    PRIVATE
+        DB_STORAGE_LIBRARY
+)
+
+target_link_libraries(storage_demo
     PRIVATE
         DB_STORAGE_LIBRARY
 )

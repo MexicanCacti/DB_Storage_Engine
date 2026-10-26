@@ -75,7 +75,7 @@ class Database
         Tuple readTuple(const std::string& tableName, RID recordID);
         RID updateTuple(const std::string& tableName, RID recordID, Tuple updatedTuple);
         void deleteTuple(const std::string& tableName, RID recordID);
-        std::vector<Tuple> scan(const std::string& tableName);
+        std::vector<std::pair<Tuple, RID>> scan(const std::string& tableName);
         void flushAllPages();
         ~Database();
 };
