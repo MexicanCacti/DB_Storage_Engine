@@ -11,11 +11,20 @@ add_executable( 4_6_tests
   4_6_tests.cpp
 )
 
+add_executable( 5_6_tests
+  5_6_tests.cpp
+)
+
 add_executable( storage_demo
   storage_demo.cpp
 )
 
 target_link_libraries(4_6_tests
+    PRIVATE
+        DB_STORAGE_LIBRARY
+)
+
+target_link_libraries(5_6_tests
     PRIVATE
         DB_STORAGE_LIBRARY
 )
@@ -26,7 +35,7 @@ target_link_libraries(storage_demo
 )
 
 set_target_properties(
-    4_6_tests storage_demo
+    4_6_tests 5_6_tests storage_demo
       PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )

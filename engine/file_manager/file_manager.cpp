@@ -5,6 +5,7 @@ FileManager::FileManager(const std::filesystem::path& directory) : dataDirectory
 {
     std::filesystem::create_directories(dataDirectory);
 }
+
 void FileManager::createFile(const std::string& fileName)
 {
     std::filesystem::path file(fileName);

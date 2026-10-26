@@ -8,6 +8,7 @@ void BufferPool::placeFrame(std::size_t frameIndex, const PageID& pageID)
     Page bufferPage(pageID);
 
     fileManager.readPage(fileName, pageNumber, bufferPage.getPageBytes());
+    ++readCount;
 
     BufferFrame& frame = framePool[frameIndex];
     frame.page = std::move(bufferPage);
@@ -19,6 +20,7 @@ void BufferPool::placeFrame(std::size_t frameIndex, const PageID& pageID)
     frameLookup[pageID] = frameIndex;
 }
 
+// Most recently used frame always in the back!
 void BufferPool::updateLRUFrame(std::size_t frameIndex)
 {
     LRUList.remove(frameIndex);
@@ -59,6 +61,8 @@ void BufferPool::evictFrame(std::size_t frameIndex)
     frame.isOccupied = false;
     frame.pinCount = 0;
     frame.dirtyFlag = false;
+
+    ++evictCount;
 }
 
 BufferPool::BufferPool(FileManager& fileManager, std::unordered_map<std::int64_t, std::string>& tableIDToFile, std::int8_t frameCount) 
@@ -116,6 +120,7 @@ void BufferPool::flushPage(const PageID& pageID)
     if(!frame.dirtyFlag) return;
     std::string fileName = tableIDToFile.at(pageID.tableID);
     fileManager.writePage(fileName, pageID.pageNumber, frame.page.getPageBytesConst());
+    ++writeCount;
     frame.dirtyFlag = false;
 }
 
